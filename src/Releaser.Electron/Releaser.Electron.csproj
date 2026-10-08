@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Releaser.Domain\Releaser.Domain.csproj" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+</Project>

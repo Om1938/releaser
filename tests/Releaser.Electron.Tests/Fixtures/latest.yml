@@ -1,0 +1,8 @@
+version: 1.2.0
+files:
+  - url: Sample-App-Setup-1.2.0.exe
+    sha512: Qm9ndXNXaW5kb3dzU2hhNTEyQ2hlY2tzdW1Gb3JUZXN0aW5nT25seQ==
+    size: 85321472
+path: Sample-App-Setup-1.2.0.exe
+sha512: Qm9ndXNXaW5kb3dzU2hhNTEyQ2hlY2tzdW1Gb3JUZXN0aW5nT25seQ==
+releaseDate: '2026-09-30T10:00:00.000Z'

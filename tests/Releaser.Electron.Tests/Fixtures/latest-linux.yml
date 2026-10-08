@@ -1,0 +1,10 @@
+version: 1.2.0
+files:
+  - url: Sample-App-1.2.0.AppImage
+    sha512: TGludXhBcHBJbWFnZVNoYTUxMkNoZWNrc3VtRm9yVGVzdGluZw==
+    size: 110234567
+    blockMapSize: 116000
+path: Sample-App-1.2.0.AppImage
+sha512: TGludXhBcHBJbWFnZVNoYTUxMkNoZWNrc3VtRm9yVGVzdGluZw==
+releaseDate: '2026-09-30T10:00:00.000Z'
+stagingPercentage: 50

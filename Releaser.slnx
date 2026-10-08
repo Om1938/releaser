@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Releaser.Domain/Releaser.Domain.csproj" />
+    <Project Path="src/Releaser.Electron/Releaser.Electron.csproj" />
+    <Project Path="src/Releaser.Server/Releaser.Server.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Releaser.Domain.Tests/Releaser.Domain.Tests.csproj" />
+    <Project Path="tests/Releaser.Electron.Tests/Releaser.Electron.Tests.csproj" />
+    <Project Path="tests/Releaser.Server.Tests/Releaser.Server.Tests.csproj" />
+  </Folder>
+</Solution>

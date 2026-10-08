@@ -1,0 +1,14 @@
+bin/
+obj/
+*.user
+.vs/
+.idea/
+node_modules/
+dist/
+web/playwright-report/
+web/test-results/
+web/e2e/.state.json
+*.tsbuildinfo
+TestResults/
+.env
+samples/electron-app/dist/
