@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Releaser: API + static dashboard in one image. Build stages run on the build platform; the runtime is multi-arch.
 
-FROM --platform=$BUILDPLATFORM node:24.19.0-alpine AS web
+FROM --platform=$BUILDPLATFORM node:26.10.0-alpine AS web
 WORKDIR /web
 RUN corepack enable
 COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
