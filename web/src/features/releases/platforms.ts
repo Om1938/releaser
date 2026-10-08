@@ -20,3 +20,28 @@ export const manifestUrlSchema = z.url({ protocol: /^https?$/, error: "Use an ab
 export function manifestUrlIn(folderUrl: string, platform: Platform): string {
   return `${folderUrl.replace(/\/+$/, "")}/${feedFiles[platform]}`;
 }
+
+/**
+ * Suggests where another platform's manifest lives, next to an already registered one. Parses the URL so a
+ * query string (e.g. a shared access token) is kept and slashes inside it are not mistaken for path separators.
+ */
+export function siblingManifestUrl(sourceUrl: string, platform: Platform): string {
+  const url = new URL(sourceUrl);
+  url.pathname = url.pathname.replace(/[^/]*$/, feedFiles[platform]);
+  url.hash = "";
+  return url.toString();
+}
+
+/** Platforms a release does not ship yet, in the standard order. */
+export function missingPlatforms(release: Pick<Schemas["ReleaseResponse"], "platforms">): Platform[] {
+  return allPlatforms.filter((platform) => !release.platforms.includes(platform));
+}
+
+/**
+ * Platforms the application ships, from every release that is not withdrawn. Used as the default selection when
+ * registering, so a one-off single-platform hotfix does not narrow the next release.
+ */
+export function shippedPlatforms(releases: readonly Pick<Schemas["ReleaseResponse"], "platforms" | "state">[]): Platform[] {
+  const shipped = new Set(releases.filter((release) => release.state !== "Withdrawn").flatMap((release) => release.platforms));
+  return allPlatforms.filter((platform) => shipped.has(platform));
+}

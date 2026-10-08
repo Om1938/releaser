@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { semverSchema } from "@/features/shared/schemas";
 import { platformLabels } from "@/lib/format";
-import { allPlatforms, feedFiles, manifestUrlIn, manifestUrlSchema, type Platform } from "./platforms";
+import { allPlatforms, feedFiles, manifestUrlIn, manifestUrlSchema, shippedPlatforms, type Platform } from "./platforms";
 
 const schema = z
   .object({
@@ -32,8 +32,9 @@ const schema = z
       ctx.addIssue({ code: "custom", path: ["included"], message: "Include at least one platform. The others can be added later." });
     }
     for (const platform of values.included) {
-      if (!manifestUrlSchema.safeParse(values.manifests[platform]).success) {
-        ctx.addIssue({ code: "custom", path: ["manifests", platform], message: "Use an absolute http(s) URL." });
+      const result = manifestUrlSchema.safeParse(values.manifests[platform]);
+      if (!result.success) {
+        ctx.addIssue({ code: "custom", path: ["manifests", platform], message: result.error.issues[0]?.message ?? "Invalid URL." });
       }
     }
   });
@@ -49,8 +50,10 @@ export function RegisterReleaseDialog({ appId }: { appId: string }) {
   const channels = useQuery(queries.channels(appId));
   const app = useQuery(queries.application(appId));
   const releases = useQuery(queries.releases(appId));
-  // Start from the platforms the newest release ships, so a Windows-only app is not asked for macOS/Linux manifests.
-  const defaultPlatforms: Platform[] = releases.data?.[0]?.platforms ?? ["Windows"];
+  // Start from every platform the app ships (non-withdrawn releases), so a Windows-only app is not asked for macOS/Linux
+  // manifests and a one-off single-platform hotfix does not narrow the next release. New apps start with Windows.
+  const shipped = shippedPlatforms(releases.data ?? []);
+  const defaultPlatforms: Platform[] = shipped.length > 0 ? shipped : ["Windows"];
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     values: {

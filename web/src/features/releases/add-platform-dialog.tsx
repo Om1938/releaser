@@ -15,29 +15,18 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { platformLabels } from "@/lib/format";
-import { allPlatforms, feedFiles, manifestUrlIn, manifestUrlSchema, type Platform } from "./platforms";
+import { allPlatforms, feedFiles, manifestUrlSchema, missingPlatforms, siblingManifestUrl, type Platform } from "./platforms";
 
 const schema = z.object({ platform: z.enum(allPlatforms), url: manifestUrlSchema });
 type Values = z.infer<typeof schema>;
-
-/** Platforms the release does not ship yet, in the standard order. */
-export function missingPlatforms(release: Schemas["ReleaseResponse"]): Platform[] {
-  return allPlatforms.filter((platform) => !release.platforms.includes(platform));
-}
-
-/** Folder of the release's first manifest, used to suggest where the next platform's manifest lives. */
-function releaseFolder(release: Schemas["ReleaseResponse"]): string | undefined {
-  const source = release.manifests[0]?.sourceUrl;
-  return source ? source.slice(0, source.lastIndexOf("/")) : undefined;
-}
 
 /** Adds one more platform's manifest to an existing release (issue #8). Existing manifests stay immutable. */
 export function AddPlatformDialog({ appId, release }: { appId: string; release: Schemas["ReleaseResponse"] }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const missing = missingPlatforms(release);
-  const folder = releaseFolder(release);
-  const suggest = (platform: Platform) => (folder ? manifestUrlIn(folder, platform) : "");
+  const source = release.manifests[0]?.sourceUrl;
+  const suggest = (platform: Platform) => (source ? siblingManifestUrl(source, platform) : "");
   const initial = (): Values => ({ platform: missing[0] ?? "MacOS", url: missing[0] ? suggest(missing[0]) : "" });
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: initial() });
   const platform = useWatch({ control: form.control, name: "platform" });

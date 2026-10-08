@@ -45,8 +45,8 @@ internal sealed class ReleaseConfiguration : IEntityTypeConfiguration<Release>
         builder.Property(r => r.AppId).HasConversion(Conversions.AppId);
         builder.Property(r => r.Version).HasConversion(Conversions.Version).HasMaxLength(128);
         builder.Property(r => r.Title).HasMaxLength(200);
-        builder.Property(r => r.Channels).HasField("_channels").UsePropertyAccessMode(PropertyAccessMode.Field).HasJsonConversion();
-        builder.Property(r => r.Platforms).HasField("_platforms").UsePropertyAccessMode(PropertyAccessMode.Field).HasJsonConversion();
+        builder.Property(r => r.Channels).HasField("_channels").UsePropertyAccessMode(PropertyAccessMode.Field).HasJsonListConversion();
+        builder.Property(r => r.Platforms).HasField("_platforms").UsePropertyAccessMode(PropertyAccessMode.Field).HasJsonListConversion();
         builder.HasIndex(r => new { r.AppId, r.Version }).IsUnique();
         builder.Property<uint>("RowVersion").IsRowVersion();
         builder.HasOne<Application>().WithMany().HasForeignKey(r => r.AppId).OnDelete(DeleteBehavior.Restrict);

@@ -2,7 +2,8 @@ import type { Schemas } from "@/api/client";
 import { CopyButton } from "@/components/copy-button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime, platformLabels } from "@/lib/format";
-import { AddPlatformDialog, missingPlatforms } from "./add-platform-dialog";
+import { AddPlatformDialog } from "./add-platform-dialog";
+import { missingPlatforms } from "./platforms";
 
 export function ReleaseManifestsCard({ appId, release, readOnly }: { appId: string; release: Schemas["ReleaseResponse"]; readOnly: boolean }) {
   const missing = missingPlatforms(release);

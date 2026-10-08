@@ -13,6 +13,9 @@ public sealed class StubManifestHost : IManifestFetcher
     public const string BaseUrl = "https://cdn.example.test/sample-app";
     private readonly ConcurrentDictionary<string, string> _files = new();
 
+    /// <summary>Simulated network latency, used to make concurrent requests overlap.</summary>
+    public TimeSpan Delay { get; set; }
+
     public string Publish(string version, PlatformTarget platform, string? content = null)
     {
         var url = $"{BaseUrl}/{version}/{FeedFileName.For(platform)}";
@@ -20,13 +23,14 @@ public sealed class StubManifestHost : IManifestFetcher
         return url;
     }
 
-    public Task<FetchedManifest> FetchAsync(Uri url, CancellationToken cancellationToken)
+    public async Task<FetchedManifest> FetchAsync(Uri url, CancellationToken cancellationToken)
     {
+        await Task.Delay(Delay, cancellationToken);
         if (!_files.TryGetValue(url.AbsoluteUri, out var content))
         {
-            throw new ManifestFetchException($"Fetching {url} returned HTTP 404; redirects are not followed.");
+            throw new ManifestFetchException($"Fetching {url} returned HTTP 404.", System.Net.HttpStatusCode.NotFound);
         }
-        return Task.FromResult(new FetchedManifest(url, content, Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content)))));
+        return new FetchedManifest(url, content, Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content))));
     }
 
     public static string FileNameFor(string version, PlatformTarget platform) => platform switch

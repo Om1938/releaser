@@ -90,4 +90,54 @@ public sealed class AddPlatformLaterTests(PostgresContainer postgres) : Platform
         response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
         (await response.Content.ReadAsStringAsync()).ShouldContain("MacOS manifest: Fetching");
     }
+
+    [Fact]
+    public async Task concurrent_adds_of_different_platforms_both_succeed()
+    {
+        var (admin, app, release) = await ArrangeWindowsOnlyAsync();
+        var mac = Manifests.Publish("1.1.0", PlatformTarget.MacOS);
+        var linux = Manifests.Publish("1.1.0", PlatformTarget.LinuxX64);
+        var otherAdmin = await Node.CreateAdminClient().LoginAsync();
+        Manifests.Delay = TimeSpan.FromMilliseconds(400);
+
+        var responses = await Task.WhenAll(
+            AddAsync(admin, app.Id, release.Id, PlatformTarget.MacOS, mac),
+            AddAsync(otherAdmin, app.Id, release.Id, PlatformTarget.LinuxX64, linux));
+
+        responses.Select(r => r.StatusCode).ShouldAllBe(status => status == HttpStatusCode.OK);
+        var reloaded = await admin.SendAsync<ReleaseResponse>(HttpMethod.Get, $"/api/admin/v1/applications/{app.Id}/releases/{release.Id}", null);
+        reloaded.Platforms.ShouldBe([PlatformTarget.Windows, PlatformTarget.MacOS, PlatformTarget.LinuxX64]);
+    }
+
+    [Fact]
+    public async Task manifest_validation_errors_name_the_platform()
+    {
+        var admin = await AdminAsync();
+        var app = await admin.CreateApplicationAsync();
+        var noChecksum = Manifests.Publish("1.1.0", PlatformTarget.MacOS, "version: 1.1.0\nfiles:\n  - url: a.zip\n");
+        var response = await admin.RawAsync(HttpMethod.Post, $"/api/admin/v1/applications/{app.Id}/releases",
+            new RegisterReleaseRequest("1.1.0", null, ["stable"],
+            [
+                new ManifestReference(PlatformTarget.Windows, Manifests.Publish("1.1.0", PlatformTarget.Windows)),
+                new ManifestReference(PlatformTarget.MacOS, noChecksum),
+            ]));
+        var body = await response.Content.ReadAsStringAsync();
+        body.ShouldContain("manifest.checksum_missing");
+        body.ShouldContain("MacOS manifest:");
+    }
+
+    [Fact]
+    public async Task only_registration_suggests_adding_a_missing_platform_later()
+    {
+        var (admin, app, release) = await ArrangeWindowsOnlyAsync();
+        var missing = $"{StubManifestHost.BaseUrl}/1.1.0/latest-mac.yml";
+
+        var registering = await admin.RawAsync(HttpMethod.Post, $"/api/admin/v1/applications/{app.Id}/releases",
+            new RegisterReleaseRequest("1.2.0", null, ["stable"], [new ManifestReference(PlatformTarget.MacOS, missing)]));
+        (await registering.Content.ReadAsStringAsync()).ShouldContain("add it to the release later");
+
+        var adding = await AddAsync(admin, app.Id, release.Id, PlatformTarget.MacOS, missing);
+        adding.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        (await adding.Content.ReadAsStringAsync()).ShouldNotContain("later");
+    }
 }

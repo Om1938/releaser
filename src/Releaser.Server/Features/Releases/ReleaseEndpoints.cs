@@ -90,17 +90,33 @@ internal static class ReleaseEndpoints
     private static async Task<Results<Ok<ReleaseResponse>, NotFound>> AddManifestAsync(
         Guid appId, Guid releaseId, ManifestReference request, ReleaserDbContext db, ReleaseRegistration registration, IAuditLog audit, CancellationToken cancellationToken)
     {
-        var release = await FindAsync(appId, releaseId, db, cancellationToken);
-        if (release is null)
+        var detached = await db.Releases.AsNoTracking().SingleOrDefaultAsync(r => r.AppId == new AppId(appId) && r.Id == new ReleaseId(releaseId), cancellationToken);
+        if (detached is null)
         {
             return TypedResults.NotFound();
         }
-        var manifest = await registration.AddManifestAsync(release, request, cancellationToken);
-        audit.Record(new AuditRecord("release.manifest_added", "release", release.Id.ToString(), appId,
-            $"version={release.Version}; platform={manifest.Platform}; source={manifest.SourceUrl}"));
-        await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Ok(await ToResponseAsync(release, db, cancellationToken));
+        // Fetch first (up to the manifest timeout), then append in a short optimistic transaction. Concurrent adds of
+        // different platforms only conflict on the release row version, so retry on fresh state (issue #8 review).
+        var prepared = await registration.PrepareAdditionAsync(detached, request, cancellationToken);
+        for (var attempt = 1; ; attempt++)
+        {
+            var release = (await FindAsync(appId, releaseId, db, cancellationToken))!;
+            var manifest = registration.Attach(release, prepared);
+            audit.Record(new AuditRecord("release.manifest_added", "release", release.Id.ToString(), appId,
+                $"version={release.Version}; platform={manifest.Platform}; source={manifest.SourceUrl}"));
+            try
+            {
+                await db.SaveChangesAsync(cancellationToken);
+                return TypedResults.Ok(await ToResponseAsync(release, db, cancellationToken));
+            }
+            catch (DbUpdateConcurrencyException) when (attempt < MaxAppendAttempts)
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
     }
+
+    private const int MaxAppendAttempts = 3;
 
     private static async Task<Results<Ok<ReleaseResponse>, NotFound>> AssignChannelsAsync(
         Guid appId, Guid releaseId, AssignChannelsRequest request, ReleaserDbContext db, IAuditLog audit, CancellationToken cancellationToken)
