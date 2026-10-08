@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
       - run: dotnet restore Releaser.slnx --locked-mode
@@ -82,7 +82,7 @@ jobs:
       ConnectionStrings__Releaser: Host=localhost;Port=55432;Database=releaser;Username=releaser;Password=releaser
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
       - uses: pnpm/action-setup@v4
