@@ -37,8 +37,9 @@ public sealed class AdminClient
         return this;
     }
 
-    public Task<ApplicationResponse> CreateApplicationAsync(string key = "sample-app") =>
-        SendAsync<ApplicationResponse>(HttpMethod.Post, "/api/admin/v1/applications", new CreateApplicationRequest(key, "Sample App", null, "stable", "Stable"));
+    public Task<ApplicationResponse> CreateApplicationAsync(string key = "sample-app", IReadOnlyList<PlatformTarget>? platforms = null) =>
+        SendAsync<ApplicationResponse>(HttpMethod.Post, "/api/admin/v1/applications",
+            new CreateApplicationRequest(key, "Sample App", null, "stable", "Stable", platforms ?? Enum.GetValues<PlatformTarget>()));
 
     public Task<ReleaseResponse> RegisterReleaseAsync(Guid appId, string version, IEnumerable<(PlatformTarget Platform, string Url)> manifests, params string[] channels) =>
         SendAsync<ReleaseResponse>(HttpMethod.Post, $"/api/admin/v1/applications/{appId}/releases",

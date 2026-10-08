@@ -20,6 +20,7 @@ internal sealed class ApplicationConfiguration : IEntityTypeConfiguration<Applic
         builder.Property(a => a.Name).HasMaxLength(200);
         builder.Property(a => a.Description).HasMaxLength(2000);
         builder.Property(a => a.DefaultChannel).HasConversion(Conversions.ChannelKey).HasMaxLength(64);
+        builder.Property(a => a.SupportedPlatforms).HasJsonConversion();
         builder.Property(a => a.ConfigVersion);
     }
 }

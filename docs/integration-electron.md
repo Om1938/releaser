@@ -88,7 +88,7 @@ Each item has `version`, `title`, `summary`, `bodyMarkdown`, `changes[] {categor
 
 | Situation | Feed response | electron-updater |
 |---|---|---|
-| Nothing eligible / up to date / paused deployment / unknown channel | 200, `version: <current>` | `update-not-available` |
+| Nothing eligible / up to date / paused deployment / unknown channel / platform not supported by the application | 200, `version: <current>` | `update-not-available` |
 | Unknown application, or a channel name that isn't a valid key | 404 | `error` event, no update |
 | Malformed path (bad version or installation ID) | 400 | `error` event, no update |
 | Database unreachable after the freshness bound | 503 | `error` event, no update |

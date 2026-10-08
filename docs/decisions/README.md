@@ -16,3 +16,4 @@ Short records of decisions that are not obvious from the code. Read the relevant
 | [0010](0010-verification-strategy.md) | Electron compatibility verification strategy |
 | [0011](0011-operational-state-in-postgres.md) | Operational state in PostgreSQL (data-protection keys, migration lock) |
 | [0012](0012-dashboard-stack.md) | Dashboard stack and dependency policy |
+| [0013](0013-supported-platforms.md) | Per-application supported platforms |

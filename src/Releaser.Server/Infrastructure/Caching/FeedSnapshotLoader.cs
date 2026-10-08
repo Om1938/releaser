@@ -28,6 +28,7 @@ internal sealed class FeedSnapshotLoader(ReleaserDbContext db)
             application.ConfigVersion,
             application.DefaultChannel,
             channels,
+            application.SupportedPlatforms,
             [.. releases.Select(ReleaseCandidate.From)],
             [.. deployments.Select(DeploymentRule.From).Where(d => d.ClaimsAudience)],
             [.. audiences.Select(a => a.ToDefinition())],

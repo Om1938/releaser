@@ -3810,6 +3810,7 @@
           "name",
           "description",
           "defaultChannel",
+          "supportedPlatforms",
           "configVersion",
           "createdAt"
         ],
@@ -3833,6 +3834,12 @@
           },
           "defaultChannel": {
             "type": "string"
+          },
+          "supportedPlatforms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlatformTarget"
+            }
           },
           "configVersion": {
             "type": "integer",
@@ -4276,7 +4283,8 @@
           "name",
           "description",
           "defaultChannelKey",
-          "defaultChannelName"
+          "defaultChannelName",
+          "supportedPlatforms"
         ],
         "type": "object",
         "properties": {
@@ -4297,6 +4305,12 @@
           },
           "defaultChannelName": {
             "type": "string"
+          },
+          "supportedPlatforms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlatformTarget"
+            }
           }
         }
       },
@@ -4446,7 +4460,8 @@
           "ReleaseNotOfferable",
           "ReleaseNotOnPlatform",
           "ReleaseExcluded",
-          "AlreadyUpToDate"
+          "AlreadyUpToDate",
+          "PlatformNotSupported"
         ]
       },
       "DeploymentResponse": {
@@ -5296,7 +5311,8 @@
         "required": [
           "name",
           "description",
-          "defaultChannelKey"
+          "defaultChannelKey",
+          "supportedPlatforms"
         ],
         "type": "object",
         "properties": {
@@ -5311,6 +5327,12 @@
           },
           "defaultChannelKey": {
             "type": "string"
+          },
+          "supportedPlatforms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlatformTarget"
+            }
           }
         }
       },

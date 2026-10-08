@@ -13,6 +13,7 @@ public enum DecisionReason
     ReleaseNotOnPlatform,
     ReleaseExcluded,
     AlreadyUpToDate,
+    PlatformNotSupported,
 }
 
 /// <summary>The resolved answer plus a human-readable trace explaining it (ADR 0006). The trace is for administrators only.</summary>

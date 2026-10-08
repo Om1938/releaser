@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { manifestUrlIn, missingPlatforms, shippedPlatforms, siblingManifestUrl } from "./platforms";
+import { inStandardOrder, manifestUrlIn, missingPlatforms, siblingManifestUrl } from "./platforms";
 
 describe("manifestUrlIn", () => {
   it("joins the release folder with the platform's standard file name", () => {
@@ -21,23 +21,17 @@ describe("siblingManifestUrl", () => {
 });
 
 describe("missingPlatforms", () => {
-  it("lists platforms the release does not have, in standard order", () => {
-    expect(missingPlatforms({ platforms: ["MacOS"] })).toEqual(["Windows", "LinuxX64", "LinuxArm64", "LinuxArmv7l"]);
+  it("lists supported platforms the release does not have, in standard order", () => {
+    expect(missingPlatforms({ platforms: ["MacOS"] }, ["MacOS", "LinuxX64", "Windows"])).toEqual(["Windows", "LinuxX64"]);
+  });
+
+  it("never suggests a platform the application does not support", () => {
+    expect(missingPlatforms({ platforms: ["Windows"] }, ["Windows", "MacOS"])).toEqual(["MacOS"]);
   });
 });
 
-describe("shippedPlatforms", () => {
-  it("unions platforms of non-withdrawn releases so a single-platform hotfix does not narrow the default", () => {
-    expect(
-      shippedPlatforms([
-        { platforms: ["Windows"], state: "Available" },
-        { platforms: ["Windows", "MacOS", "LinuxX64"], state: "Deprecated" },
-        { platforms: ["LinuxArm64"], state: "Withdrawn" },
-      ]),
-    ).toEqual(["Windows", "MacOS", "LinuxX64"]);
-  });
-
-  it("is empty for an application without releases", () => {
-    expect(shippedPlatforms([])).toEqual([]);
+describe("inStandardOrder", () => {
+  it("orders platforms canonically", () => {
+    expect(inStandardOrder(["LinuxArm64", "Windows", "MacOS"])).toEqual(["Windows", "MacOS", "LinuxArm64"]);
   });
 });

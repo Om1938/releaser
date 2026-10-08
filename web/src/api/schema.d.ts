@@ -650,6 +650,7 @@ export interface components {
             name: string;
             description: null | string;
             defaultChannel: string;
+            supportedPlatforms: components["schemas"]["PlatformTarget"][];
             /** Format: int64 */
             configVersion: number;
             /** Format: date-time */
@@ -767,6 +768,7 @@ export interface components {
             description: null | string;
             defaultChannelKey: string;
             defaultChannelName: string;
+            supportedPlatforms: components["schemas"]["PlatformTarget"][];
         };
         CreateChannelRequest: {
             key: string;
@@ -809,7 +811,7 @@ export interface components {
             roles: string[];
         };
         /** @enum {unknown} */
-        DecisionReason: "Offered" | "UnknownChannel" | "NoMatchingDeployment" | "DeploymentPaused" | "ReleaseNotOfferable" | "ReleaseNotOnPlatform" | "ReleaseExcluded" | "AlreadyUpToDate";
+        DecisionReason: "Offered" | "UnknownChannel" | "NoMatchingDeployment" | "DeploymentPaused" | "ReleaseNotOfferable" | "ReleaseNotOnPlatform" | "ReleaseExcluded" | "AlreadyUpToDate" | "PlatformNotSupported";
         DeploymentResponse: {
             /** Format: uuid */
             id: string;
@@ -1025,6 +1027,7 @@ export interface components {
             name: string;
             description: null | string;
             defaultChannelKey: string;
+            supportedPlatforms: components["schemas"]["PlatformTarget"][];
         };
         UpdateChannelRequest: {
             name: string;

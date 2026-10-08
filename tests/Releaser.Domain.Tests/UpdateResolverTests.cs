@@ -233,4 +233,25 @@ public sealed class UpdateResolverTests
             UpdateResolver.Resolve(copy, context).Reason.ShouldBe(UpdateResolver.Resolve(snapshot, context).Reason);
         }
     }
+
+    [Fact]
+    public void an_unsupported_platform_gets_no_update_even_with_a_matching_deployment()
+    {
+        var scenario = new PrdScenario();
+        scenario.Builder.SupportedPlatforms = [PlatformTarget.Windows, PlatformTarget.MacOS];
+
+        var linux = scenario.Resolve(Context(customer: "customer-a", platform: PlatformTarget.LinuxX64));
+        linux.Reason.ShouldBe(DecisionReason.PlatformNotSupported);
+        linux.IsUpdateOffered.ShouldBeFalse();
+        scenario.Resolve(Context(customer: "customer-a", platform: PlatformTarget.MacOS)).OfferedVersion!.ToString().ShouldBe("1.1.0");
+    }
+
+    [Fact]
+    public void the_platform_rule_wins_over_pins()
+    {
+        var scenario = new PrdScenario();
+        scenario.Builder.Pin("QA pin", scenario.Builder.Audience(new GroupRule(["internal-qa"])), scenario.V110);
+        scenario.Builder.SupportedPlatforms = [PlatformTarget.Windows];
+        scenario.Resolve(Context(groups: ["internal-qa"], platform: PlatformTarget.MacOS)).Reason.ShouldBe(DecisionReason.PlatformNotSupported);
+    }
 }

@@ -20,7 +20,7 @@ On first start Releaser applies its database migrations and creates the bootstra
 
 ## 3. Ship a first targeted release
 
-1. **Create an application.** Go to *Applications → New application*. The **key** (e.g. `acme-desktop`) appears in feed URLs and can't change later. The default channel (e.g. `stable`) is what electron-updater's built-in `latest` channel maps to.
+1. **Create an application.** Go to *Applications → New application*. The **key** (e.g. `acme-desktop`) appears in feed URLs and can't change later. Tick the **supported platforms** the app ships to (e.g. Windows and macOS). Only these can be registered and offered, and you can change them later under *Settings*. The default channel (e.g. `stable`) is what electron-updater's built-in `latest` channel maps to.
 2. **Integrate the app once.** Follow [integration-electron.md](integration-electron.md). In short, call `autoUpdater.setFeedURL()` at runtime with `https://<releaser>/u/<appKey>/<installationId>/<currentVersion>/`.
 3. **Build and host as usual.** electron-builder writes `latest.yml`, `latest-mac.yml`, `latest-linux.yml` and so on next to your installers. Upload them to your CDN folder for that version.
 4. **Register the release.** Go to *Releases → Register release*. Enter the version, tick the platforms you ship now, and give the URL of each selected platform's `latest*.yml`. You can add the other platforms to the same release later from its page (*Add platform manifest*), e.g. Windows today and macOS next week. Releaser fetches each manifest once and validates it. It must carry `sha512` and declare the same version. Releaser then stores an immutable snapshot whose relative file paths are resolved against *your* CDN. Nothing is offered yet.

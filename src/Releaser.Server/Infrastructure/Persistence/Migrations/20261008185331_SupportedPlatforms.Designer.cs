@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Releaser.Server.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Releaser.Server.Infrastructure.Persistence;
 namespace Releaser.Server.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ReleaserDbContext))]
-    partial class ReleaserDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261008185331_SupportedPlatforms")]
+    partial class SupportedPlatforms
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

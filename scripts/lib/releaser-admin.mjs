@@ -54,6 +54,7 @@ const PLATFORM_FILES = {
 export async function seedPrdScenario(admin, { appKey, artifactBaseUrl, publicKeyPem }) {
   const app = await admin.post("/api/admin/v1/applications", {
     key: appKey, name: "Sample App", description: "Electron sample app (PRD §6 scenario)", defaultChannelKey: "stable", defaultChannelName: "Stable",
+    supportedPlatforms: Object.keys(PLATFORM_FILES),
   });
   const base = `/api/admin/v1/applications/${app.id}`;
   const releases = {};

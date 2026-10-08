@@ -10,6 +10,7 @@ An audience matches when **any include rule** matches and **no exclude rule** ma
 
 ## Steps
 
+0. **Supported platforms.** If the application doesn't support the requested platform (Settings → Supported platforms), the answer is **no update**. Dropping a platform therefore stops new offers to it.
 1. **Pins.** If a pin's audience matches, the most specific pin decides the target release, and deployments are ignored. Ties go to higher priority, then the older pin.
 2. **Deployments.** Otherwise, candidates are deployments on the requested channel that are *Active*, *Paused* or *Completed*, whose audience matches, and whose rollout cohort contains the installation. The winner is chosen by specificity, then `priority` (higher first), then the higher release version.
    - The winner is **paused** → **no update**, and the installation does *not* fall through to a less specific deployment. Pausing never changes what other audiences receive.
