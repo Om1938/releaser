@@ -22,7 +22,10 @@ internal static class Conversions
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Stores an immutable value as jsonb; values are replaced, never mutated, so comparison by serialized form is exact.</summary>
+    /// <summary>
+    /// Stores a value as jsonb. Change detection compares serialized forms, and the snapshot is a deep copy,
+    /// so in-place changes to collections (e.g. assigning a channel) are detected and saved.
+    /// </summary>
     public static void HasJsonConversion<T>(this Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<T> property)
     {
         property
@@ -32,7 +35,7 @@ internal static class Conversions
                 new ValueComparer<T>(
                     (left, right) => JsonSerializer.Serialize(left, JsonOptions) == JsonSerializer.Serialize(right, JsonOptions),
                     value => JsonSerializer.Serialize(value, JsonOptions).GetHashCode(StringComparison.Ordinal),
-                    value => value))
+                    value => JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(value, JsonOptions), JsonOptions)!))
             .HasColumnType("jsonb");
     }
 }
