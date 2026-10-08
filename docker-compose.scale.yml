@@ -1,0 +1,44 @@
+# Optional scale-out profile: two application nodes behind Caddy, plus Redis as HybridCache L2.
+#   docker compose -f docker-compose.yml -f docker-compose.scale.yml up -d
+# Redis is an optimisation only; PostgreSQL stays the source of truth (docs/caching-and-freshness.md).
+services:
+  app:
+    ports: !reset []
+    environment:
+      Redis__ConnectionString: redis:6379
+      Platform__TrustForwardedHeaders: "true"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  app-2:
+    extends:
+      file: docker-compose.yml
+      service: app
+    ports: !reset []
+    environment:
+      Redis__ConnectionString: redis:6379
+      Platform__TrustForwardedHeaders: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  proxy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "${RELEASER_PORT:-8080}:8080"
+    command: caddy reverse-proxy --from :8080 --to app:8080 --to app-2:8080
+    depends_on: [app, app-2]
+
+  redis:
+    image: redis:8.8.3-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20

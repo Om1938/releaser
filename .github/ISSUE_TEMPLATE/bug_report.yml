@@ -1,0 +1,65 @@
+name: Bug report
+description: Something in Releaser does not work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Security vulnerabilities must not be reported here** — see [SECURITY.md](https://github.com/Om1938/releaser/blob/main/SECURITY.md).
+        Please remove secrets, tokens and customer identifiers from logs before pasting them.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Include what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Register release 1.2.0 with …
+        2. Create deployment …
+        3. Request /u/<app>/<installation>/1.0.0/latest.yml …
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Update feed / electron-updater compatibility
+        - Targeting, rollouts, pins or exclusions
+        - Releases, manifests or release notes
+        - Dashboard (UI)
+        - Admin API / authentication
+        - Caching, freshness or scale-out
+        - Docker / deployment / operations
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Releaser version or commit
+      description: Shown under Account & system, or the image tag / git SHA.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Deployment profile (default / scale-out), PostgreSQL version, Redis yes/no, electron-updater and electron-builder versions, client OS/arch.
+  - type: textarea
+    id: explain
+    attributes:
+      label: Decision explainer output (if about update decisions)
+      description: Paste the reason and trace from Application → Decision explainer.
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      render: text

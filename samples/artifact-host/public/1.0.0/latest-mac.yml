@@ -1,0 +1,11 @@
+version: 1.0.0
+files:
+  - url: Sample-App-1.0.0-arm64-mac.zip
+    sha512: UnuU1iN5/+qd+WMD+LBxn+905TSkTjzxOpXXhqQR2z38MmtF2+tkrd9EjWsoNp2PARbzxhjzt8l1IGznYjgPqg==
+    size: 70
+  - url: Sample-App-1.0.0-mac.zip
+    sha512: leIjkOSCCRhzRnZvcPEw/x5xOPOGiT1DaHH92g+aba9ta2mwwTBCZNuLSJSdrGL1jp2MxjrlLXM+viCSEvq4xQ==
+    size: 64
+path: Sample-App-1.0.0-arm64-mac.zip
+sha512: UnuU1iN5/+qd+WMD+LBxn+905TSkTjzxOpXXhqQR2z38MmtF2+tkrd9EjWsoNp2PARbzxhjzt8l1IGznYjgPqg==
+releaseDate: '2026-09-30T10:00:00.000Z'

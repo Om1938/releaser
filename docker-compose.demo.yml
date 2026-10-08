@@ -1,0 +1,32 @@
+# Demo profile: a stand-in external artifact host (nginx) and a one-shot job that seeds and verifies the PRD scenario.
+# Demo settings (http manifests on the private Docker network, demo credentials) come from .env.demo:
+#   docker compose --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml up -d --build --wait
+#   docker compose --env-file .env.demo -f docker-compose.yml -f docker-compose.demo.yml run --rm demo
+# Works with the scale-out profile too (add -f docker-compose.scale.yml and -e RELEASER_URL=http://proxy:8080).
+services:
+  artifacts:
+    image: nginx:1.31.6-alpine
+    volumes:
+      - ./samples/artifact-host/public:/usr/share/nginx/html:ro
+      - ./samples/artifact-host/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8081:80"
+
+  demo:
+    image: node:24.19.0-alpine
+    profiles: ["demo"]
+    working_dir: /repo
+    volumes:
+      - ./scripts:/repo/scripts:ro
+    environment:
+      RELEASER_URL: http://app:8080
+      ARTIFACT_BASE_URL: http://artifacts
+      RELEASER_ADMIN_EMAIL: ${RELEASER_ADMIN_EMAIL}
+      RELEASER_ADMIN_PASSWORD: ${RELEASER_ADMIN_PASSWORD}
+      RELEASER_FRESHNESS_SECONDS: ${RELEASER_FRESHNESS_SECONDS:-5}
+    command: ["node", "scripts/demo/run-demo.mjs"]
+    depends_on:
+      app:
+        condition: service_healthy
+      artifacts:
+        condition: service_started

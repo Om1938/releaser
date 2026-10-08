@@ -1,0 +1,8 @@
+version: 1.2.0
+files:
+  - url: https://downloads.example.com/sample-app/1.2.0/Sample-App-1.2.0-arm64.AppImage?token=abc%20def
+    sha512: TGludXhBcm02NEFwcEltYWdlU2hhNTEyQ2hlY2tzdW0=
+    size: 108234567
+path: https://downloads.example.com/sample-app/1.2.0/Sample-App-1.2.0-arm64.AppImage?token=abc%20def
+sha512: TGludXhBcm02NEFwcEltYWdlU2hhNTEyQ2hlY2tzdW0=
+releaseDate: '2026-09-30T10:00:00.000Z'

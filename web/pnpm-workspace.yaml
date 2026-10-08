@@ -1,0 +1,5 @@
+# Supply-chain policy: refuse packages younger than one day (same as pnpm's default in CI/containers).
+minimumReleaseAge: 1440
+overrides:
+  # Keep a single, policy-compliant Playwright core for @playwright/test and @axe-core/playwright.
+  playwright-core: 1.63.0

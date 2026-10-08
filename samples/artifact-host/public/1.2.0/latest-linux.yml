@@ -1,0 +1,8 @@
+version: 1.2.0
+files:
+  - url: Sample-App-1.2.0.AppImage
+    sha512: rNsyfNG0QcB5H16hosO99n9jg99YyNdk8PBs64lyopgP7ubi3HaLsIxU2/xpH4gO9ttn00euCfymES4EzeP8hQ==
+    size: 65
+path: Sample-App-1.2.0.AppImage
+sha512: rNsyfNG0QcB5H16hosO99n9jg99YyNdk8PBs64lyopgP7ubi3HaLsIxU2/xpH4gO9ttn00euCfymES4EzeP8hQ==
+releaseDate: '2026-09-30T10:00:00.000Z'

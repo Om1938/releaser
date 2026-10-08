@@ -1,0 +1,17 @@
+version: 1.2.0
+files:
+  - url: Sample-App-Web-Setup-1.2.0.exe
+    sha512: TnNpc1dlYlN0dWJTaGE1MTJDaGVja3N1bUZvclRlc3Rpbmc=
+    size: 1234567
+packages:
+  x64:
+    path: sample-app-1.2.0-x64.nsis.7z
+    sha512: WDY0UGFja2FnZVNoYTUxMkNoZWNrc3VtRm9yVGVzdGluZw==
+    size: 80000000
+  arm64:
+    path: sample-app-1.2.0-arm64.nsis.7z
+    sha512: QXJtNjRQYWNrYWdlU2hhNTEyQ2hlY2tzdW1Gb3JUZXN0aW5n
+    size: 78000000
+path: Sample-App-Web-Setup-1.2.0.exe
+sha512: TnNpc1dlYlN0dWJTaGE1MTJDaGVja3N1bUZvclRlc3Rpbmc=
+releaseDate: '2026-09-30T10:00:00.000Z'

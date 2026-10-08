@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose an improvement within Releaser's scope.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Releaser deliberately stays small. Please check the [explicit non-goals](https://github.com/Om1938/releaser/blob/main/PRD.md#8-explicit-non-goals)
+        (binary storage/serving, CI/CD, multi-tenant SaaS, device management, automatic health-based rollouts, feature flags) before proposing.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What release-management situation is hard or impossible today? Who is affected?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should it behave? Include API, dashboard and electron-updater impact if relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This does not require Releaser to build, store, proxy or serve binaries.
+          required: true
+        - label: I searched existing issues and docs/decisions for related discussion.
+          required: true

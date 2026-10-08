@@ -1,0 +1,44 @@
+# Default self-hosted profile: the application (API + dashboard) and PostgreSQL. Local memory cache only.
+#   cp .env.example .env   # then edit secrets
+#   docker compose up -d
+name: releaser
+
+services:
+  app:
+    image: ${RELEASER_IMAGE:-releaser:local}
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${RELEASER_PORT:-8080}:8080"
+    environment:
+      ConnectionStrings__Releaser: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-releaser};Username=${POSTGRES_USER:-releaser};Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}"
+      Bootstrap__AdminEmail: ${RELEASER_ADMIN_EMAIL:-}
+      Bootstrap__AdminPassword: ${RELEASER_ADMIN_PASSWORD:-}
+      Platform__PublicBaseUrl: ${RELEASER_PUBLIC_BASE_URL:-http://localhost:8080}
+      Platform__TrustForwardedHeaders: ${RELEASER_TRUST_FORWARDED_HEADERS:-false}
+      Resolution__FreshnessSeconds: ${RELEASER_FRESHNESS_SECONDS:-5}
+      RateLimits__ClientPerMinute: ${RELEASER_CLIENT_RATE_LIMIT_PER_MINUTE:-600}
+      Manifests__AllowInsecureHttp: ${RELEASER_ALLOW_INSECURE_MANIFESTS:-false}
+      Manifests__AllowPrivateNetworks: ${RELEASER_ALLOW_PRIVATE_MANIFEST_HOSTS:-false}
+      Telemetry__OtlpEndpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+
+  postgres:
+    image: postgres:18.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-releaser}
+      POSTGRES_USER: ${POSTGRES_USER:-releaser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  postgres-data:

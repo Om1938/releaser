@@ -1,0 +1,13 @@
+**/bin
+**/obj
+**/node_modules
+**/dist
+web/playwright-report
+web/test-results
+.git
+.github
+docs
+samples
+tests
+*.md
+!src/Releaser.Server/wwwroot/README.md

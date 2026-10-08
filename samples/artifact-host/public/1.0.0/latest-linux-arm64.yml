@@ -1,0 +1,8 @@
+version: 1.0.0
+files:
+  - url: Sample-App-1.0.0-arm64.AppImage
+    sha512: HbYjjKA24c9mf/lr5uJ8rRc/MctCeI2OMxd4CeJqXLrxoPk2mAE/W2OxI17aAH7F/2rAB0TxB4TSCpHdA2PjCA==
+    size: 71
+path: Sample-App-1.0.0-arm64.AppImage
+sha512: HbYjjKA24c9mf/lr5uJ8rRc/MctCeI2OMxd4CeJqXLrxoPk2mAE/W2OxI17aAH7F/2rAB0TxB4TSCpHdA2PjCA==
+releaseDate: '2026-09-30T10:00:00.000Z'

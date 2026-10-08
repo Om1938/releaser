@@ -1,0 +1,16 @@
+{
+  "name": "releaser-updater-contract",
+  "private": true,
+  "type": "module",
+  "description": "Headless contract tests: real electron-updater code against a running Releaser instance.",
+  "scripts": {
+    "test": "node --test --test-timeout=120000 contract.test.mjs"
+  },
+  "dependencies": {
+    "electron-updater": "6.8.9",
+    "builder-util-runtime": "9.7.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
