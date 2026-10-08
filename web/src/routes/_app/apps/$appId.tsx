@@ -3,6 +3,7 @@ import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
 import { queries } from "@/api/queries";
 import { ErrorState, LoadingRows } from "@/components/query-state";
 import { Badge } from "@/components/ui/badge";
+import { platformLabels } from "@/lib/format";
 
 const sections = [
   { to: "/apps/$appId", label: "Overview", exact: true },
@@ -32,6 +33,7 @@ function ApplicationLayout() {
           <h1 className="text-2xl font-semibold tracking-tight">{app?.name}</h1>
           <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{app?.key}</code>
           <Badge variant="outline">config v{app?.configVersion}</Badge>
+          <span className="text-sm text-muted-foreground">{app?.supportedPlatforms.map((p) => platformLabels[p]).join(" · ")}</span>
         </div>
         <nav aria-label="Application sections" className="-mx-1 flex gap-1 overflow-x-auto border-b">
           {sections.map((section) => (

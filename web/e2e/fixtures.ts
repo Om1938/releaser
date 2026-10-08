@@ -22,6 +22,8 @@ export async function signIn(page: Page) {
 
 /** Fails on serious or critical WCAG 2.1 A/AA violations. */
 export async function expectAccessible(page: Page) {
+  // Let enter/exit animations (e.g. toasts fading in) settle: mid-transition opacity is not the colour users read.
+  await page.waitForFunction(() => document.getAnimations().every((animation) => animation.playState !== "running"));
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   const blocking = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(blocking.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);

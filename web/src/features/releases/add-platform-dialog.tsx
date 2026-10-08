@@ -15,16 +15,16 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { platformLabels } from "@/lib/format";
-import { allPlatforms, feedFiles, manifestUrlSchema, missingPlatforms, siblingManifestUrl, type Platform } from "./platforms";
+import { allPlatforms, feedFiles, manifestUrlSchema, missingPlatforms, siblingManifestUrl, type Platform } from "@/lib/platforms";
 
 const schema = z.object({ platform: z.enum(allPlatforms), url: manifestUrlSchema });
 type Values = z.infer<typeof schema>;
 
 /** Adds one more platform's manifest to an existing release (issue #8). Existing manifests stay immutable. */
-export function AddPlatformDialog({ appId, release }: { appId: string; release: Schemas["ReleaseResponse"] }) {
+export function AddPlatformDialog({ appId, release, supported }: { appId: string; release: Schemas["ReleaseResponse"]; supported: readonly Platform[] }) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
-  const missing = missingPlatforms(release);
+  const missing = missingPlatforms(release, supported);
   const source = release.manifests[0]?.sourceUrl;
   const suggest = (platform: Platform) => (source ? siblingManifestUrl(source, platform) : "");
   const initial = (): Values => ({ platform: missing[0] ?? "MacOS", url: missing[0] ? suggest(missing[0]) : "" });
@@ -102,7 +102,7 @@ export function AddPlatformDialog({ appId, release }: { appId: string; release: 
                       ))}
                     </SelectContent>
                   </Select>
-                  <FieldDescription>Only platforms this release does not have yet.</FieldDescription>
+                  <FieldDescription>Supported platforms this release does not have yet.</FieldDescription>
                 </Field>
               )}
             />

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Releaser.Domain.Applications;
 using Releaser.Domain.Common;
+using Releaser.Domain.Targeting;
 using Releaser.Electron;
 using Releaser.Server.Features.Audit;
 using Releaser.Server.Infrastructure.Http;
@@ -10,15 +11,21 @@ using Releaser.Server.Infrastructure.Persistence;
 
 namespace Releaser.Server.Features.Applications;
 
-public sealed record ApplicationResponse(Guid Id, string Key, string Name, string? Description, string DefaultChannel, long ConfigVersion, DateTimeOffset CreatedAt)
+public sealed record ApplicationResponse(
+    Guid Id, string Key, string Name, string? Description, string DefaultChannel, IReadOnlyList<PlatformTarget> SupportedPlatforms,
+    long ConfigVersion, DateTimeOffset CreatedAt)
 {
     public static ApplicationResponse From(Application a) =>
-        new(a.Id.Value, a.Key.Value, a.Name, a.Description, a.DefaultChannel.Value, a.ConfigVersion, a.CreatedAt);
+        new(a.Id.Value, a.Key.Value, a.Name, a.Description, a.DefaultChannel.Value, a.SupportedPlatforms, a.ConfigVersion, a.CreatedAt);
 }
 
-public sealed record CreateApplicationRequest(string Key, string Name, string? Description, string DefaultChannelKey, string DefaultChannelName);
+public sealed record CreateApplicationRequest(
+    string Key, string Name, string? Description, string DefaultChannelKey, string DefaultChannelName, IReadOnlyList<PlatformTarget> SupportedPlatforms);
 
 public sealed record UpdateApplicationRequest(string Name, string? Description, string DefaultChannelKey);
+
+/// <summary>Replaces the application's supported platforms (separate from <see cref="UpdateApplicationRequest"/> so edits never clobber each other).</summary>
+public sealed record ChangeSupportedPlatformsRequest(IReadOnlyList<PlatformTarget> SupportedPlatforms);
 
 internal sealed class CreateApplicationValidator : AbstractValidator<CreateApplicationRequest>
 {
@@ -29,6 +36,7 @@ internal sealed class CreateApplicationValidator : AbstractValidator<CreateAppli
         RuleFor(r => r.Description).MaximumLength(2000);
         RuleFor(r => r.DefaultChannelKey).MustBeChannelKey();
         RuleFor(r => r.DefaultChannelName).NotEmpty().MaximumLength(200);
+        RuleFor(r => r.SupportedPlatforms).MustListPlatforms();
     }
 }
 
@@ -42,6 +50,11 @@ internal sealed class UpdateApplicationValidator : AbstractValidator<UpdateAppli
     }
 }
 
+internal sealed class ChangeSupportedPlatformsValidator : AbstractValidator<ChangeSupportedPlatformsRequest>
+{
+    public ChangeSupportedPlatformsValidator() => RuleFor(r => r.SupportedPlatforms).MustListPlatforms();
+}
+
 internal static class ApplicationEndpoints
 {
     public static RouteGroupBuilder MapApplications(this RouteGroupBuilder admin)
@@ -51,6 +64,9 @@ internal static class ApplicationEndpoints
         group.MapGet("/{appId:guid}", GetAsync).WithName("GetApplication");
         group.MapPost("/", CreateAsync).WithName("CreateApplication").Validate<CreateApplicationRequest>().RequiresReleaseManager();
         group.MapPut("/{appId:guid}", UpdateAsync).WithName("UpdateApplication").Validate<UpdateApplicationRequest>().RequiresReleaseManager();
+        group.MapPut("/{appId:guid}/supported-platforms", ChangeSupportedPlatformsAsync).WithName("ChangeSupportedPlatforms")
+            .WithSummary("Replace the platforms the application ships to; dropping one stops new offers to it")
+            .Validate<ChangeSupportedPlatformsRequest>().RequiresReleaseManager();
         return admin;
     }
 
@@ -70,10 +86,11 @@ internal static class ApplicationEndpoints
         CreateApplicationRequest request, ReleaserDbContext db, IAuditLog audit, TimeProvider clock, CancellationToken cancellationToken)
     {
         var defaultChannel = ChannelKey.From(request.DefaultChannelKey);
-        var application = Application.Create(ApplicationKey.From(request.Key), request.Name, request.Description, defaultChannel, clock.GetUtcNow());
+        var application = Application.Create(ApplicationKey.From(request.Key), request.Name, request.Description, defaultChannel, request.SupportedPlatforms, clock.GetUtcNow());
         db.Applications.Add(application);
         db.Channels.Add(Channel.Create(application.Id, defaultChannel, request.DefaultChannelName, null));
-        audit.Record(new AuditRecord("application.created", "application", application.Id.ToString(), application.Id.Value, $"key={application.Key}"));
+        audit.Record(new AuditRecord("application.created", "application", application.Id.ToString(), application.Id.Value,
+            $"key={application.Key}; platforms={string.Join(',', application.SupportedPlatforms)}"));
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Created($"/api/admin/v1/applications/{application.Id}", ApplicationResponse.From(application));
     }
@@ -97,6 +114,22 @@ internal static class ApplicationEndpoints
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(ApplicationResponse.From(application));
     }
+
+    private static async Task<Results<Ok<ApplicationResponse>, NotFound>> ChangeSupportedPlatformsAsync(
+        Guid appId, ChangeSupportedPlatformsRequest request, ReleaserDbContext db, IAuditLog audit, CancellationToken cancellationToken)
+    {
+        var application = await db.Applications.SingleOrDefaultAsync(a => a.Id == new AppId(appId), cancellationToken);
+        if (application is null)
+        {
+            return TypedResults.NotFound();
+        }
+        var previous = string.Join(',', application.SupportedPlatforms);
+        application.ChangeSupportedPlatforms(request.SupportedPlatforms);
+        audit.Record(new AuditRecord("application.platforms_changed", "application", application.Id.ToString(), application.Id.Value,
+            $"{previous} -> {string.Join(',', application.SupportedPlatforms)}"));
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.Ok(ApplicationResponse.From(application));
+    }
 }
 
 /// <summary>Validation rules shared by slices that accept keys.</summary>
@@ -105,6 +138,11 @@ internal static class KeyValidationRules
     public static IRuleBuilderOptions<T, string> MustBeSlug<T>(this IRuleBuilder<T, string> rule) =>
         rule.NotEmpty().Matches("^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$")
             .WithMessage("Use 1-64 lowercase letters, digits or dashes, not starting or ending with a dash.");
+
+    public static IRuleBuilderOptions<T, IReadOnlyList<PlatformTarget>> MustListPlatforms<T>(this IRuleBuilderInitial<T, IReadOnlyList<PlatformTarget>> rule) =>
+        rule.Cascade(CascadeMode.Stop)
+            .NotEmpty().WithMessage("Choose at least one supported platform.")
+            .Must(platforms => platforms.All(Enum.IsDefined)).WithMessage("Unknown platform.");
 
     public static IRuleBuilderOptions<T, string> MustBeChannelKey<T>(this IRuleBuilder<T, string> rule) =>
         rule.MustBeSlug().Must(FeedFileName.IsUnambiguousChannelKey)

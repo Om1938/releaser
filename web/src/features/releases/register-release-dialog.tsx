@@ -17,7 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { semverSchema } from "@/features/shared/schemas";
 import { platformLabels } from "@/lib/format";
-import { allPlatforms, feedFiles, manifestUrlIn, manifestUrlSchema, shippedPlatforms, type Platform } from "./platforms";
+import { allPlatforms, feedFiles, manifestUrlIn, manifestUrlSchema, type Platform } from "@/lib/platforms";
+import { PlatformCheckboxes } from "@/features/shared/platform-checkboxes";
 
 const schema = z
   .object({
@@ -49,18 +50,15 @@ export function RegisterReleaseDialog({ appId }: { appId: string }) {
   const queryClient = useQueryClient();
   const channels = useQuery(queries.channels(appId));
   const app = useQuery(queries.application(appId));
-  const releases = useQuery(queries.releases(appId));
-  // Start from every platform the app ships (non-withdrawn releases), so a Windows-only app is not asked for macOS/Linux
-  // manifests and a one-off single-platform hotfix does not narrow the next release. New apps start with Windows.
-  const shipped = shippedPlatforms(releases.data ?? []);
-  const defaultPlatforms: Platform[] = shipped.length > 0 ? shipped : ["Windows"];
+  // Only the application's supported platforms are offered, all ticked by default (issue #10).
+  const supported: Platform[] = app.data?.supportedPlatforms ?? [];
   const form = useForm<Values>({
     resolver: zodResolver(schema),
     values: {
       version: "",
       title: "",
       channels: app.data ? [app.data.defaultChannel] : [],
-      included: defaultPlatforms,
+      included: supported,
       manifests: emptyManifests,
     },
     resetOptions: { keepDirtyValues: true },
@@ -151,27 +149,15 @@ export function RegisterReleaseDialog({ appId }: { appId: string }) {
               name="included"
               control={form.control}
               render={({ field, fieldState }) => (
-                <FieldSet>
-                  <FieldLegend variant="label">Platforms to register now</FieldLegend>
-                  <FieldDescription>
-                    Only these manifests are fetched now. Skip platforms you don't ship yet — add them to this release later from its page.
-                  </FieldDescription>
-                  <div className="flex flex-wrap gap-4">
-                    {allPlatforms.map((platform) => (
-                      <Field key={platform} orientation="horizontal" className="w-auto">
-                        <Checkbox
-                          id={`include-${platform}`}
-                          checked={field.value.includes(platform)}
-                          onCheckedChange={(checked) => field.onChange(checked ? [...field.value, platform] : field.value.filter((p) => p !== platform))}
-                        />
-                        <FieldLabel htmlFor={`include-${platform}`} className="font-normal">
-                          {platformLabels[platform]}
-                        </FieldLabel>
-                      </Field>
-                    ))}
-                  </div>
-                  {fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}
-                </FieldSet>
+                <PlatformCheckboxes
+                  legend="Platforms to register now"
+                  description="Only these manifests are fetched now. Skip platforms you haven't published yet and add them to this release later from its page. The list comes from the application's supported platforms (Settings)."
+                  options={supported}
+                  value={field.value}
+                  onChange={field.onChange}
+                  idPrefix="include"
+                  error={fieldState.error?.message}
+                />
               )}
             />
             {included.length > 0 && (

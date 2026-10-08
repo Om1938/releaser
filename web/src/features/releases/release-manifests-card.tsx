@@ -3,10 +3,17 @@ import { CopyButton } from "@/components/copy-button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime, platformLabels } from "@/lib/format";
 import { AddPlatformDialog } from "./add-platform-dialog";
-import { missingPlatforms } from "./platforms";
+import { missingPlatforms } from "@/lib/platforms";
 
-export function ReleaseManifestsCard({ appId, release, readOnly }: { appId: string; release: Schemas["ReleaseResponse"]; readOnly: boolean }) {
-  const missing = missingPlatforms(release);
+interface ReleaseManifestsCardProps {
+  appId: string;
+  release: Schemas["ReleaseResponse"];
+  supported: readonly Schemas["PlatformTarget"][];
+  readOnly: boolean;
+}
+
+export function ReleaseManifestsCard({ appId, release, supported, readOnly }: ReleaseManifestsCardProps) {
+  const missing = missingPlatforms(release, supported);
   const canAdd = !readOnly && release.state !== "Withdrawn" && missing.length > 0;
   return (
     <Card>
@@ -18,7 +25,7 @@ export function ReleaseManifestsCard({ appId, release, readOnly }: { appId: stri
         </CardDescription>
         {canAdd && (
           <CardAction>
-            <AddPlatformDialog key={release.platforms.join()} appId={appId} release={release} />
+            <AddPlatformDialog key={release.platforms.join()} appId={appId} release={release} supported={supported} />
           </CardAction>
         )}
       </CardHeader>

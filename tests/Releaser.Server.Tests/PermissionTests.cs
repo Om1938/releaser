@@ -10,7 +10,7 @@ namespace Releaser.Server.Tests;
 /// <summary>Administrative access is separated from updater consumption and scoped by role (ADR 0009).</summary>
 public sealed class PermissionTests(PostgresContainer postgres) : PlatformTest(postgres)
 {
-    private static readonly CreateApplicationRequest NewApp = new("other-app", "Other", null, "stable", "Stable");
+    private static readonly CreateApplicationRequest NewApp = new("other-app", "Other", null, "stable", "Stable", [Domain.Targeting.PlatformTarget.Windows]);
 
     private async Task<AdminClient> SignInAsAsync(string role)
     {

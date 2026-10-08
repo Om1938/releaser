@@ -30,6 +30,10 @@ public sealed class UpdateResolver
         {
             return Decide(DecisionReason.UnknownChannel, null, null, null, $"Channel '{_context.Channel}' does not exist.");
         }
+        if (!_snapshot.SupportedPlatforms.Contains(_context.Platform))
+        {
+            return Decide(DecisionReason.PlatformNotSupported, null, null, null, $"The application does not support {_context.Platform}.");
+        }
         var pin = SelectPin();
         if (pin is not null)
         {

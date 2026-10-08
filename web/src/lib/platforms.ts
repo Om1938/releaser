@@ -32,16 +32,12 @@ export function siblingManifestUrl(sourceUrl: string, platform: Platform): strin
   return url.toString();
 }
 
-/** Platforms a release does not ship yet, in the standard order. */
-export function missingPlatforms(release: Pick<Schemas["ReleaseResponse"], "platforms">): Platform[] {
-  return allPlatforms.filter((platform) => !release.platforms.includes(platform));
+/** Supported platforms a release does not ship yet, in the standard order. */
+export function missingPlatforms(release: Pick<Schemas["ReleaseResponse"], "platforms">, supported: readonly Platform[]): Platform[] {
+  return inStandardOrder(supported).filter((platform) => !release.platforms.includes(platform));
 }
 
-/**
- * Platforms the application ships, from every release that is not withdrawn. Used as the default selection when
- * registering, so a one-off single-platform hotfix does not narrow the next release.
- */
-export function shippedPlatforms(releases: readonly Pick<Schemas["ReleaseResponse"], "platforms" | "state">[]): Platform[] {
-  const shipped = new Set(releases.filter((release) => release.state !== "Withdrawn").flatMap((release) => release.platforms));
-  return allPlatforms.filter((platform) => shipped.has(platform));
+/** Platforms in the canonical order used everywhere in the dashboard. */
+export function inStandardOrder(platforms: readonly Platform[]): Platform[] {
+  return allPlatforms.filter((platform) => platforms.includes(platform));
 }

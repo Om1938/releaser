@@ -89,7 +89,8 @@ public sealed class FeedSnapshotCache(
 
     private async Task<FeedSnapshot> GetSnapshotAsync(VersionStamp stamp, CancellationToken cancellationToken) =>
         await cache.GetOrCreateAsync(
-            $"snapshot:{stamp.AppId}:{stamp.ConfigVersion}",
+            // "v2": the snapshot shape gained SupportedPlatforms; never read entries cached by older builds (Redis L2).
+            $"snapshot:v2:{stamp.AppId}:{stamp.ConfigVersion}",
             stamp,
             async (state, token) => await LoadExactAsync(state, token),
             new HybridCacheEntryOptions

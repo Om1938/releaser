@@ -54,8 +54,11 @@ internal sealed class ScenarioBuilder
     public void Replace(DeploymentRule deployment, DeploymentRule replacement) =>
         _deployments[_deployments.IndexOf(deployment)] = replacement;
 
+    /// <summary>Platforms the application supports; all by default.</summary>
+    public List<PlatformTarget> SupportedPlatforms { get; set; } = [.. Enum.GetValues<PlatformTarget>()];
+
     public ResolutionSnapshot Build() =>
-        new(1, Stable, [Stable], [.. _releases], [.. _deployments], [.. _audiences], [.. _pins], [.. _exclusions]);
+        new(1, Stable, [Stable], [.. SupportedPlatforms], [.. _releases], [.. _deployments], [.. _audiences], [.. _pins], [.. _exclusions]);
 
     public static TargetContext Context(string current = "1.0.0", string? installation = "install-0001",
         string? customer = null, string? user = null, string[]? groups = null, PlatformTarget platform = PlatformTarget.Windows) =>

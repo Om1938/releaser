@@ -1097,6 +1097,91 @@
         }
       }
     },
+    "/api/admin/v1/applications/{appId}/supported-platforms": {
+      "put": {
+        "tags": [
+          "Applications"
+        ],
+        "summary": "Replace the platforms the application ships to; dropping one stops new offers to it",
+        "operationId": "ChangeSupportedPlatforms",
+        "parameters": [
+          {
+            "name": "appId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeSupportedPlatformsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/v1/applications/{appId}/channels": {
       "get": {
         "tags": [
@@ -3810,6 +3895,7 @@
           "name",
           "description",
           "defaultChannel",
+          "supportedPlatforms",
           "configVersion",
           "createdAt"
         ],
@@ -3833,6 +3919,12 @@
           },
           "defaultChannel": {
             "type": "string"
+          },
+          "supportedPlatforms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlatformTarget"
+            }
           },
           "configVersion": {
             "type": "integer",
@@ -4210,6 +4302,21 @@
           }
         }
       },
+      "ChangeSupportedPlatformsRequest": {
+        "required": [
+          "supportedPlatforms"
+        ],
+        "type": "object",
+        "properties": {
+          "supportedPlatforms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlatformTarget"
+            }
+          }
+        },
+        "description": "Replaces the application's supported platforms (separate from UpdateApplicationRequest so edits never clobber each other)."
+      },
       "ChannelResponse": {
         "required": [
           "id",
@@ -4276,7 +4383,8 @@
           "name",
           "description",
           "defaultChannelKey",
-          "defaultChannelName"
+          "defaultChannelName",
+          "supportedPlatforms"
         ],
         "type": "object",
         "properties": {
@@ -4297,6 +4405,12 @@
           },
           "defaultChannelName": {
             "type": "string"
+          },
+          "supportedPlatforms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlatformTarget"
+            }
           }
         }
       },
@@ -4446,7 +4560,8 @@
           "ReleaseNotOfferable",
           "ReleaseNotOnPlatform",
           "ReleaseExcluded",
-          "AlreadyUpToDate"
+          "AlreadyUpToDate",
+          "PlatformNotSupported"
         ]
       },
       "DeploymentResponse": {

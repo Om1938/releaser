@@ -23,6 +23,7 @@ function ReleasePage() {
   const { appId, releaseId } = Route.useParams();
   const { user } = Route.useRouteContext();
   const release = useQuery(queries.release(appId, releaseId));
+  const app = useQuery(queries.application(appId));
   const queryClient = useQueryClient();
   const transition = useMutation({
     mutationFn: (action: "deprecate" | "withdraw") =>
@@ -80,7 +81,7 @@ function ReleasePage() {
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="flex flex-col gap-6 lg:col-span-2">
               <ReleaseNotesEditor appId={appId} releaseId={releaseId} readOnly={!canEdit} />
-              <ReleaseManifestsCard appId={appId} release={r} readOnly={!canEdit} />
+              <ReleaseManifestsCard appId={appId} release={r} supported={app.data?.supportedPlatforms ?? []} readOnly={!canEdit} />
             </div>
             <div className="lg:self-start">
               <ReleaseChannelsCard key={r.channels.join()} appId={appId} release={r} readOnly={!canEdit} />

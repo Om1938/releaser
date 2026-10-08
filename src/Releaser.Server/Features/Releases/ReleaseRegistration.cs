@@ -19,6 +19,11 @@ internal sealed class ReleaseRegistration(ReleaserDbContext db, IManifestFetcher
         var channels = request.Channels.Distinct().Select(ChannelKey.From).ToList();
         await EnsureChannelsExistAsync(appId, channels, cancellationToken);
         await EnsureVersionIsNewAsync(appId, version, cancellationToken);
+        var application = await db.Applications.AsNoTracking().SingleAsync(a => a.Id == appId, cancellationToken);
+        foreach (var reference in request.Manifests)
+        {
+            application.EnsureSupports(reference.Platform);
+        }
 
         var prepared = await Task.WhenAll(request.Manifests.Select(reference => PrepareForRegistrationAsync(reference, version, cancellationToken)));
         var now = clock.GetUtcNow();
@@ -43,6 +48,8 @@ internal sealed class ReleaseRegistration(ReleaserDbContext db, IManifestFetcher
     public async Task<PreparedManifest> PrepareAdditionAsync(Release release, ManifestReference reference, CancellationToken cancellationToken)
     {
         release.AddPlatform(reference.Platform); // detached copy: validates "withdrawn" and "already has this platform" up front
+        var application = await db.Applications.AsNoTracking().SingleAsync(a => a.Id == release.AppId, cancellationToken);
+        application.EnsureSupports(reference.Platform);
         return await PrepareAsync(reference, release.Version, cancellationToken);
     }
 

@@ -11,6 +11,7 @@ public sealed record ResolutionSnapshot(
     long ConfigVersion,
     ChannelKey DefaultChannel,
     IReadOnlyList<ChannelKey> Channels,
+    IReadOnlyList<PlatformTarget> SupportedPlatforms,
     IReadOnlyList<ReleaseCandidate> Releases,
     IReadOnlyList<DeploymentRule> Deployments,
     IReadOnlyList<AudienceDefinition> Audiences,

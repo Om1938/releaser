@@ -12,6 +12,9 @@ test("create an application from the dashboard", async ({ signedIn: page }) => {
   await page.getByLabel("Name", { exact: true }).fill("UI Created App");
   await page.getByLabel("Key", { exact: true }).fill(key);
   await page.getByRole("button", { name: "Create application" }).click();
+  await expect(page.getByText("Choose at least one platform this application ships to.")).toBeVisible();
+  await page.getByRole("dialog").getByLabel("Windows", { exact: true }).check();
+  await page.getByRole("button", { name: "Create application" }).click();
   await expect(page.getByRole("heading", { name: "UI Created App" })).toBeVisible();
   await expect(page.getByText(`/u/${key}/`).first()).toBeVisible();
 });

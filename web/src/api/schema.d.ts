@@ -222,6 +222,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/v1/applications/{appId}/supported-platforms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace the platforms the application ships to; dropping one stops new offers to it */
+        put: operations["ChangeSupportedPlatforms"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/v1/applications/{appId}/channels": {
         parameters: {
             query?: never;
@@ -650,6 +667,7 @@ export interface components {
             name: string;
             description: null | string;
             defaultChannel: string;
+            supportedPlatforms: components["schemas"]["PlatformTarget"][];
             /** Format: int64 */
             configVersion: number;
             /** Format: date-time */
@@ -744,6 +762,10 @@ export interface components {
             /** Format: int32 */
             priority: number;
         };
+        /** @description Replaces the application's supported platforms (separate from UpdateApplicationRequest so edits never clobber each other). */
+        ChangeSupportedPlatformsRequest: {
+            supportedPlatforms: components["schemas"]["PlatformTarget"][];
+        };
         ChannelResponse: {
             /** Format: uuid */
             id: string;
@@ -767,6 +789,7 @@ export interface components {
             description: null | string;
             defaultChannelKey: string;
             defaultChannelName: string;
+            supportedPlatforms: components["schemas"]["PlatformTarget"][];
         };
         CreateChannelRequest: {
             key: string;
@@ -809,7 +832,7 @@ export interface components {
             roles: string[];
         };
         /** @enum {unknown} */
-        DecisionReason: "Offered" | "UnknownChannel" | "NoMatchingDeployment" | "DeploymentPaused" | "ReleaseNotOfferable" | "ReleaseNotOnPlatform" | "ReleaseExcluded" | "AlreadyUpToDate";
+        DecisionReason: "Offered" | "UnknownChannel" | "NoMatchingDeployment" | "DeploymentPaused" | "ReleaseNotOfferable" | "ReleaseNotOnPlatform" | "ReleaseExcluded" | "AlreadyUpToDate" | "PlatformNotSupported";
         DeploymentResponse: {
             /** Format: uuid */
             id: string;
@@ -1914,6 +1937,75 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UpdateApplicationRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApplicationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ChangeSupportedPlatforms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeSupportedPlatformsRequest"];
             };
         };
         responses: {
