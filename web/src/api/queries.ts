@@ -46,6 +46,13 @@ export const queries = {
       queryFn: () =>
         unwrap(api.GET("/api/admin/v1/applications/{appId}/releases/{releaseId}/notes/revisions", { params: { path: { appId, releaseId } } })),
     }),
+  obliterationImpact: (appId: string, releaseId: string) =>
+    queryOptions({
+      queryKey: ["applications", appId, "releases", releaseId, "obliteration-impact"],
+      queryFn: () =>
+        unwrap(api.GET("/api/admin/v1/applications/{appId}/releases/{releaseId}/obliteration-impact", { params: { path: { appId, releaseId } } })),
+      staleTime: 0,
+    }),
   audiences: (appId: string) =>
     queryOptions({
       queryKey: ["applications", appId, "audiences"],

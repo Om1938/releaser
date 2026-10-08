@@ -4,6 +4,7 @@ using Releaser.Domain.Common;
 using Releaser.Domain.ReleaseNotes;
 using Releaser.Domain.Releases;
 using Releaser.Server.Features.Audit;
+using Releaser.Server.Infrastructure.Auth;
 using Releaser.Server.Infrastructure.Http;
 using Releaser.Server.Infrastructure.Persistence;
 
@@ -24,6 +25,12 @@ internal static class ReleaseEndpoints
         group.MapPost("/{releaseId:guid}/manifests", AddManifestAsync).WithName("AddReleaseManifest").Validate<ManifestReference>().RequiresReleaseManager()
             .WithSummary("Add a platform's manifest to an existing release (e.g. ship macOS after Windows)")
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
+        group.MapGet("/{releaseId:guid}/obliteration-impact", ObliterationImpactAsync).WithName("GetReleaseObliterationImpact")
+            .WithSummary("Preview everything that obliterating the release would permanently delete")
+            .RequireAuthorization(AdminRoles.CanObliterateReleases);
+        group.MapDelete("/{releaseId:guid}", ObliterateAsync).WithName("ObliterateRelease")
+            .WithSummary("Permanently delete a release and everything attached to it so its version can be registered again (admins; confirmVersion must equal the version)")
+            .RequireAuthorization(AdminRoles.CanObliterateReleases);
         group.MapPut("/{releaseId:guid}/channels", AssignChannelsAsync).WithName("AssignReleaseChannels").Validate<AssignChannelsRequest>().RequiresReleaseManager();
         group.MapPost("/{releaseId:guid}/deprecate", (Guid appId, Guid releaseId, ReleaserDbContext db, IAuditLog audit, CancellationToken ct) =>
             TransitionAsync(appId, releaseId, db, audit, r => r.Deprecate(), "release.deprecated", ct)).WithName("DeprecateRelease").RequiresReleaseManager();
@@ -117,6 +124,19 @@ internal static class ReleaseEndpoints
     }
 
     private const int MaxAppendAttempts = 3;
+
+    private static async Task<Results<Ok<ObliterationImpact>, NotFound>> ObliterationImpactAsync(
+        Guid appId, Guid releaseId, ReleaseObliteration obliteration, CancellationToken cancellationToken)
+    {
+        var impact = await obliteration.ImpactAsync(new AppId(appId), new ReleaseId(releaseId), cancellationToken);
+        return impact is null ? TypedResults.NotFound() : TypedResults.Ok(impact);
+    }
+
+    private static async Task<Results<NoContent, NotFound>> ObliterateAsync(
+        Guid appId, Guid releaseId, string? confirmVersion, ReleaseObliteration obliteration, CancellationToken cancellationToken) =>
+        await obliteration.ObliterateAsync(new AppId(appId), new ReleaseId(releaseId), confirmVersion, cancellationToken)
+            ? TypedResults.NoContent()
+            : TypedResults.NotFound();
 
     private static async Task<Results<Ok<ReleaseResponse>, NotFound>> AssignChannelsAsync(
         Guid appId, Guid releaseId, AssignChannelsRequest request, ReleaserDbContext db, IAuditLog audit, CancellationToken cancellationToken)

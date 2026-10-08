@@ -1739,6 +1739,78 @@
             }
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Permanently delete a release and everything attached to it so its version can be registered again (admins; confirmVersion must equal the version)",
+        "operationId": "ObliterateRelease",
+        "parameters": [
+          {
+            "name": "appId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "releaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "confirmVersion",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
       }
     },
     "/api/admin/v1/applications/{appId}/releases/manifest-preview": {
@@ -1921,6 +1993,80 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/admin/v1/applications/{appId}/releases/{releaseId}/obliteration-impact": {
+      "get": {
+        "tags": [
+          "Releases"
+        ],
+        "summary": "Preview everything that obliterating the release would permanently delete",
+        "operationId": "GetReleaseObliterationImpact",
+        "parameters": [
+          {
+            "name": "appId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "releaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObliterationImpact"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           }
         }
       }
@@ -4895,6 +5041,92 @@
             "type": "string"
           }
         }
+      },
+      "ObliterationDeployment": {
+        "required": [
+          "id",
+          "name",
+          "state",
+          "channel",
+          "audienceName",
+          "isLive"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/DeploymentState"
+          },
+          "channel": {
+            "type": "string"
+          },
+          "audienceName": {
+            "type": "string"
+          },
+          "isLive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ObliterationImpact": {
+        "required": [
+          "releaseId",
+          "version",
+          "state",
+          "platforms",
+          "deployments",
+          "pins",
+          "exclusions",
+          "hasReleaseNote",
+          "releaseNoteRevisions"
+        ],
+        "type": "object",
+        "properties": {
+          "releaseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ReleaseState"
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlatformTarget"
+            }
+          },
+          "deployments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ObliterationDeployment"
+            }
+          },
+          "pins": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exclusions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasReleaseNote": {
+            "type": "boolean"
+          },
+          "releaseNoteRevisions": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "description": "Everything that would be permanently deleted with a release (issue #12)."
       },
       "PlatformTarget": {
         "enum": [

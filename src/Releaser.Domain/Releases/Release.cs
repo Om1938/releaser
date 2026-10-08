@@ -84,6 +84,19 @@ public sealed class Release : IApplicationScoped
         State = ReleaseState.Withdrawn;
     }
 
+    /// <summary>
+    /// Guards the irreversible removal of a release (issue #12): the operator must repeat the exact version.
+    /// Allowed in every state; installations that already received this version keep it.
+    /// </summary>
+    public void ConfirmObliteration(string? typedVersion)
+    {
+        if (typedVersion?.Trim() != Version.Value)
+        {
+            throw new DomainRuleException("release.obliteration_unconfirmed",
+                $"Type the exact version ({Version}) to confirm that this release and everything attached to it will be permanently deleted.");
+        }
+    }
+
     private void EnsureNotWithdrawn()
     {
         if (State == ReleaseState.Withdrawn)

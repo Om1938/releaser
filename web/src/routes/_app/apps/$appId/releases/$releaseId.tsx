@@ -10,8 +10,9 @@ import { ReleaseStateBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { ReleaseNotesEditor } from "@/features/release-notes/release-notes-editor";
 import { ReleaseChannelsCard } from "@/features/releases/release-channels-card";
+import { ObliterateReleaseCard } from "@/features/releases/obliterate-release-card";
 import { ReleaseManifestsCard } from "@/features/releases/release-manifests-card";
-import { canManageReleases } from "@/lib/auth";
+import { canManageReleases, canObliterateReleases } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 
 export const Route = createFileRoute("/_app/apps/$appId/releases/$releaseId")({
@@ -83,8 +84,9 @@ function ReleasePage() {
               <ReleaseNotesEditor appId={appId} releaseId={releaseId} readOnly={!canEdit} />
               <ReleaseManifestsCard appId={appId} release={r} supported={app.data?.supportedPlatforms ?? []} readOnly={!canEdit} />
             </div>
-            <div className="lg:self-start">
+            <div className="flex flex-col gap-6 lg:self-start">
               <ReleaseChannelsCard key={r.channels.join()} appId={appId} release={r} readOnly={!canEdit} />
+              {canObliterateReleases(user) && <ObliterateReleaseCard appId={appId} release={r} />}
             </div>
           </div>
         </div>

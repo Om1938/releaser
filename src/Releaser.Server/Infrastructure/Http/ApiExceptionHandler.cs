@@ -19,6 +19,8 @@ internal sealed class ApiExceptionHandler(IProblemDetailsService problems, ILogg
             DbUpdateConcurrencyException => Problem(StatusCodes.Status409Conflict, "Concurrent modification", "The entity was changed by someone else. Reload and retry.", "concurrency"),
             DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } } =>
                 Problem(StatusCodes.Status409Conflict, "Already exists", "An entity with the same unique key already exists.", "duplicate"),
+            DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.ForeignKeyViolation } } =>
+                Problem(StatusCodes.Status409Conflict, "Still referenced", "Something new references this entity. Reload and try again.", "still_referenced"),
             BadHttpRequestException bad => Problem(bad.StatusCode, "Bad request", bad.Message, "bad_request"),
             _ => null,
         };

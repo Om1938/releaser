@@ -83,4 +83,31 @@ public sealed class ReleaseLifecycleTests
         release.AddPlatform(PlatformTarget.LinuxX64);
         release.Platforms.ShouldContain(PlatformTarget.LinuxX64);
     }
+
+    [Theory]
+    [InlineData("1.2.0")]
+    [InlineData(" 1.2.0 ")]
+    public void obliteration_is_confirmed_by_typing_the_exact_version(string typed)
+    {
+        NewRelease().ConfirmObliteration(typed);
+    }
+
+    [Theory]
+    [InlineData("1.2")]
+    [InlineData("1.2.1")]
+    [InlineData("v1.2.0")]
+    [InlineData("")]
+    [InlineData(null)]
+    public void obliteration_with_a_wrong_confirmation_is_refused(string? typed)
+    {
+        Should.Throw<DomainRuleException>(() => NewRelease().ConfirmObliteration(typed)).Code.ShouldBe("release.obliteration_unconfirmed");
+    }
+
+    [Fact]
+    public void withdrawn_releases_can_be_obliterated()
+    {
+        var release = NewRelease();
+        release.Withdraw();
+        release.ConfirmObliteration("1.2.0");
+    }
 }
