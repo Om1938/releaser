@@ -13,7 +13,10 @@ Release identities are immutable (ADR 0005), which protects installations from a
   - The request must carry `confirmVersion` equal to the release version, checked in the domain (`Release.ConfirmObliteration`).
   - The dashboard first shows an impact preview (`GET …/obliteration-impact`) that highlights live deployments, and the button only works once the exact version is typed.
 - `DELETE /api/admin/v1/applications/{appId}/releases/{releaseId}?confirmVersion=…` returns 204.
-- If something starts referencing the release while it's being deleted (a race), the foreign-key violation is returned as 409 `still_referenced`, never 500.
+- **Races are handled, never a 500:**
+  - A foreign-key violation from a concurrent create or delete returns 409 `conflict_reference` ("A related entity was changed or deleted at the same time").
+  - Adding a platform to a release that's obliterated during the manifest fetch returns 404.
+  - A node still inside its freshness window that decides to offer a just-obliterated release answers "no update", because the manifest no longer exists to render.
 
 ## Consequences
 - Installations that already received the version keep it. If the version is re-registered with different files, they won't be offered it, because electron-updater sees the same version. The dialog and docs say so, and fixing forward with a new version is still preferred once anything has shipped.

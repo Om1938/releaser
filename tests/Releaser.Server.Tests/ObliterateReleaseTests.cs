@@ -120,4 +120,35 @@ public sealed class ObliterateReleaseTests(PostgresContainer postgres) : Platfor
         var app = await admin.CreateApplicationAsync();
         (await ObliterateAsync(admin, app.Id, Guid.NewGuid(), "1.0.0")).StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task adding_a_platform_while_the_release_is_obliterated_returns_404_not_500()
+    {
+        var admin = await AdminAsync();
+        var app = await admin.CreateApplicationAsync();
+        var release = await admin.RegisterReleaseAsync(app.Id, "1.2.0", [(PlatformTarget.Windows, Manifests.Publish("1.2.0", PlatformTarget.Windows))]);
+        var mac = Manifests.Publish("1.2.0", PlatformTarget.MacOS);
+        var otherAdmin = await Node.CreateAdminClient().LoginAsync();
+        Manifests.Delay = TimeSpan.FromMilliseconds(1500);
+
+        var adding = admin.RawAsync(HttpMethod.Post, $"/api/admin/v1/applications/{app.Id}/releases/{release.Id}/manifests",
+            new ManifestReference(PlatformTarget.MacOS, mac));
+        await Task.Delay(300);
+        (await ObliterateAsync(otherAdmin, app.Id, release.Id, "1.2.0")).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        (await adding).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task referencing_an_obliterated_release_is_a_clean_not_found()
+    {
+        var (admin, app, _, doomed) = await ArrangeAsync();
+        var audiences = await admin.SendAsync<List<Features.Audiences.AudienceResponse>>(HttpMethod.Get, $"/api/admin/v1/applications/{app.Id}/audiences", null);
+        (await ObliterateAsync(admin, app.Id, doomed.Id, "1.2.0")).StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        (await admin.RawAsync(HttpMethod.Post, $"/api/admin/v1/applications/{app.Id}/deployments",
+            new CreateDeploymentRequest("late", doomed.Id, "stable", audiences[0].Id, 100, 0))).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await admin.RawAsync(HttpMethod.Post, $"/api/admin/v1/applications/{app.Id}/policies",
+            new CreatePolicyRequest("late pin", PolicyKind.Pin, audiences[0].Id, doomed.Id, 0))).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
 }

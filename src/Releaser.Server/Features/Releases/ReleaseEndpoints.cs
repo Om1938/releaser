@@ -107,7 +107,11 @@ internal static class ReleaseEndpoints
         var prepared = await registration.PrepareAdditionAsync(detached, request, cancellationToken);
         for (var attempt = 1; ; attempt++)
         {
-            var release = (await FindAsync(appId, releaseId, db, cancellationToken))!;
+            var release = await FindAsync(appId, releaseId, db, cancellationToken);
+            if (release is null)
+            {
+                return TypedResults.NotFound(); // obliterated while the manifest was being fetched (ADR 0014)
+            }
             var manifest = registration.Attach(release, prepared);
             audit.Record(new AuditRecord("release.manifest_added", "release", release.Id.ToString(), appId,
                 $"version={release.Version}; platform={manifest.Platform}; source={manifest.SourceUrl}"));
