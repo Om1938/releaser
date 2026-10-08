@@ -18,14 +18,10 @@ export function SupportedPlatformsCard({ application, readOnly }: { application:
   const save = useMutation({
     mutationFn: () =>
       unwrap(
-        api.PUT("/api/admin/v1/applications/{appId}", {
+        // Dedicated endpoint: only the platform set is sent, so concurrent edits of name/description/channel are never overwritten.
+        api.PUT("/api/admin/v1/applications/{appId}/supported-platforms", {
           params: { path: { appId: application.id } },
-          body: {
-            name: application.name,
-            description: application.description,
-            defaultChannelKey: application.defaultChannel,
-            supportedPlatforms: selected,
-          },
+          body: { supportedPlatforms: selected },
         }),
       ),
     onSuccess: async () => {

@@ -61,7 +61,11 @@ internal sealed class ManifestReferenceValidator : AbstractValidator<ManifestRef
 
 internal sealed class AssignChannelsValidator : AbstractValidator<AssignChannelsRequest>
 {
-    public AssignChannelsValidator() => RuleForEach(r => r.Channels).MustBeChannelKey();
+    public AssignChannelsValidator()
+    {
+        RuleFor(r => r.Channels).NotNull();
+        RuleForEach(r => r.Channels).MustBeChannelKey();
+    }
 }
 
 internal sealed class UpdateReleaseValidator : AbstractValidator<UpdateReleaseRequest>

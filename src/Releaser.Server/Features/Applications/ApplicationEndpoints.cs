@@ -22,7 +22,10 @@ public sealed record ApplicationResponse(
 public sealed record CreateApplicationRequest(
     string Key, string Name, string? Description, string DefaultChannelKey, string DefaultChannelName, IReadOnlyList<PlatformTarget> SupportedPlatforms);
 
-public sealed record UpdateApplicationRequest(string Name, string? Description, string DefaultChannelKey, IReadOnlyList<PlatformTarget> SupportedPlatforms);
+public sealed record UpdateApplicationRequest(string Name, string? Description, string DefaultChannelKey);
+
+/// <summary>Replaces the application's supported platforms (separate from <see cref="UpdateApplicationRequest"/> so edits never clobber each other).</summary>
+public sealed record ChangeSupportedPlatformsRequest(IReadOnlyList<PlatformTarget> SupportedPlatforms);
 
 internal sealed class CreateApplicationValidator : AbstractValidator<CreateApplicationRequest>
 {
@@ -44,8 +47,12 @@ internal sealed class UpdateApplicationValidator : AbstractValidator<UpdateAppli
         RuleFor(r => r.Name).NotEmpty().MaximumLength(200);
         RuleFor(r => r.Description).MaximumLength(2000);
         RuleFor(r => r.DefaultChannelKey).MustBeChannelKey();
-        RuleFor(r => r.SupportedPlatforms).MustListPlatforms();
     }
+}
+
+internal sealed class ChangeSupportedPlatformsValidator : AbstractValidator<ChangeSupportedPlatformsRequest>
+{
+    public ChangeSupportedPlatformsValidator() => RuleFor(r => r.SupportedPlatforms).MustListPlatforms();
 }
 
 internal static class ApplicationEndpoints
@@ -57,6 +64,9 @@ internal static class ApplicationEndpoints
         group.MapGet("/{appId:guid}", GetAsync).WithName("GetApplication");
         group.MapPost("/", CreateAsync).WithName("CreateApplication").Validate<CreateApplicationRequest>().RequiresReleaseManager();
         group.MapPut("/{appId:guid}", UpdateAsync).WithName("UpdateApplication").Validate<UpdateApplicationRequest>().RequiresReleaseManager();
+        group.MapPut("/{appId:guid}/supported-platforms", ChangeSupportedPlatformsAsync).WithName("ChangeSupportedPlatforms")
+            .WithSummary("Replace the platforms the application ships to; dropping one stops new offers to it")
+            .Validate<ChangeSupportedPlatformsRequest>().RequiresReleaseManager();
         return admin;
     }
 
@@ -100,9 +110,23 @@ internal static class ApplicationEndpoints
         }
         application.Rename(request.Name, request.Description);
         application.ChangeDefaultChannel(defaultChannel);
+        audit.Record(new AuditRecord("application.updated", "application", application.Id.ToString(), application.Id.Value, $"defaultChannel={defaultChannel}"));
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.Ok(ApplicationResponse.From(application));
+    }
+
+    private static async Task<Results<Ok<ApplicationResponse>, NotFound>> ChangeSupportedPlatformsAsync(
+        Guid appId, ChangeSupportedPlatformsRequest request, ReleaserDbContext db, IAuditLog audit, CancellationToken cancellationToken)
+    {
+        var application = await db.Applications.SingleOrDefaultAsync(a => a.Id == new AppId(appId), cancellationToken);
+        if (application is null)
+        {
+            return TypedResults.NotFound();
+        }
+        var previous = string.Join(',', application.SupportedPlatforms);
         application.ChangeSupportedPlatforms(request.SupportedPlatforms);
-        audit.Record(new AuditRecord("application.updated", "application", application.Id.ToString(), application.Id.Value,
-            $"defaultChannel={defaultChannel}; platforms={string.Join(',', application.SupportedPlatforms)}"));
+        audit.Record(new AuditRecord("application.platforms_changed", "application", application.Id.ToString(), application.Id.Value,
+            $"{previous} -> {string.Join(',', application.SupportedPlatforms)}"));
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(ApplicationResponse.From(application));
     }
@@ -115,8 +139,9 @@ internal static class KeyValidationRules
         rule.NotEmpty().Matches("^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$")
             .WithMessage("Use 1-64 lowercase letters, digits or dashes, not starting or ending with a dash.");
 
-    public static IRuleBuilderOptions<T, IReadOnlyList<PlatformTarget>> MustListPlatforms<T>(this IRuleBuilder<T, IReadOnlyList<PlatformTarget>> rule) =>
-        rule.NotEmpty().WithMessage("Choose at least one supported platform.")
+    public static IRuleBuilderOptions<T, IReadOnlyList<PlatformTarget>> MustListPlatforms<T>(this IRuleBuilderInitial<T, IReadOnlyList<PlatformTarget>> rule) =>
+        rule.Cascade(CascadeMode.Stop)
+            .NotEmpty().WithMessage("Choose at least one supported platform.")
             .Must(platforms => platforms.All(Enum.IsDefined)).WithMessage("Unknown platform.");
 
     public static IRuleBuilderOptions<T, string> MustBeChannelKey<T>(this IRuleBuilder<T, string> rule) =>

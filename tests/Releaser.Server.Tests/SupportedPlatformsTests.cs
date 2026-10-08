@@ -61,8 +61,8 @@ public sealed class SupportedPlatformsTests(PostgresContainer postgres) : Platfo
         var feed = Node.CreateFeedClient();
         (await feed.CheckAsync("installation-mac", "1.0.0", PlatformTarget.MacOS)).IsOffer("1.1.0").ShouldBeTrue();
 
-        var updated = await admin.SendAsync<ApplicationResponse>(HttpMethod.Put, $"/api/admin/v1/applications/{app.Id}",
-            new UpdateApplicationRequest(app.Name, app.Description, app.DefaultChannel, [PlatformTarget.Windows]));
+        var updated = await admin.SendAsync<ApplicationResponse>(HttpMethod.Put, $"/api/admin/v1/applications/{app.Id}/supported-platforms",
+            new ChangeSupportedPlatformsRequest([PlatformTarget.Windows]));
         updated.SupportedPlatforms.ShouldBe([PlatformTarget.Windows]);
 
         (await feed.CheckAsync("installation-mac", "1.0.0", PlatformTarget.MacOS)).FileUrls.ShouldBeEmpty();
@@ -70,6 +70,17 @@ public sealed class SupportedPlatformsTests(PostgresContainer postgres) : Platfo
         var explained = await admin.SendAsync<ExplainDecisionResponse>(HttpMethod.Post, $"/api/admin/v1/applications/{app.Id}/decisions/explain",
             new ExplainDecisionRequest(null, PlatformTarget.MacOS, "1.0.0", "installation-mac", null, null, null, null));
         explained.Reason.ShouldBe(DecisionReason.PlatformNotSupported);
-        (await admin.AuditAsync(app.Id)).Entries.ShouldContain(e => e.Action == "application.updated" && e.Details!.Contains("platforms=Windows"));
+        (await admin.AuditAsync(app.Id)).Entries.ShouldContain(e => e.Action == "application.platforms_changed" && e.Details == "Windows,MacOS -> Windows");
+    }
+
+    [Fact]
+    public async Task renaming_the_application_never_touches_its_platforms()
+    {
+        var admin = await AdminAsync();
+        var app = await admin.CreateApplicationAsync(platforms: WindowsAndMac);
+        var renamed = await admin.SendAsync<ApplicationResponse>(HttpMethod.Put, $"/api/admin/v1/applications/{app.Id}",
+            new UpdateApplicationRequest("Renamed", null, app.DefaultChannel));
+        renamed.Name.ShouldBe("Renamed");
+        renamed.SupportedPlatforms.ShouldBe(WindowsAndMac);
     }
 }

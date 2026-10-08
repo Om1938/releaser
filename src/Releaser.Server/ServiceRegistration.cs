@@ -35,6 +35,9 @@ internal static class ServiceRegistration
             json.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
             json.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
         });
+        // Stop each rule chain at its first failure, so e.g. NotEmpty() on a missing list prevents later Must(...) rules
+        // from dereferencing null (which would surface as a 500 instead of a 400).
+        ValidatorOptions.Global.DefaultRuleLevelCascadeMode = CascadeMode.Stop;
         builder.Services.AddValidatorsFromAssemblyContaining<Program>(includeInternalTypes: true);
         builder.Services.AddOpenApi();
         builder.AddOptions();
