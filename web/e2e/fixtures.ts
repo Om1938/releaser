@@ -8,8 +8,8 @@ export const credentials = {
   password: process.env.RELEASER_ADMIN_PASSWORD ?? "ChangeMe-Dev-Only-1",
 };
 
-export function seeded(): { appId: string; appKey: string } {
-  return JSON.parse(readFileSync(statePath, "utf8")) as { appId: string; appKey: string };
+export function seeded(): { appId: string; appKey: string; artifactBaseUrl: string } {
+  return JSON.parse(readFileSync(statePath, "utf8")) as { appId: string; appKey: string; artifactBaseUrl: string };
 }
 
 export async function signIn(page: Page) {

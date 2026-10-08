@@ -1,16 +1,26 @@
 import type { Schemas } from "@/api/client";
 import { CopyButton } from "@/components/copy-button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDateTime, platformLabels } from "@/lib/format";
+import { AddPlatformDialog } from "./add-platform-dialog";
+import { missingPlatforms } from "./platforms";
 
-export function ReleaseManifestsCard({ release }: { release: Schemas["ReleaseResponse"] }) {
+export function ReleaseManifestsCard({ appId, release, readOnly }: { appId: string; release: Schemas["ReleaseResponse"]; readOnly: boolean }) {
+  const missing = missingPlatforms(release);
+  const canAdd = !readOnly && release.state !== "Withdrawn" && missing.length > 0;
   return (
     <Card>
       <CardHeader>
         <CardTitle>External manifests</CardTitle>
         <CardDescription>
           Immutable snapshots. Download URLs point at your artifact host; checksums are served exactly as published.
+          {missing.length > 0 && <> Not registered yet: {missing.map((p) => platformLabels[p]).join(", ")}.</>}
         </CardDescription>
+        {canAdd && (
+          <CardAction>
+            <AddPlatformDialog key={release.platforms.join()} appId={appId} release={release} />
+          </CardAction>
+        )}
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {release.manifests.map((manifest) => (

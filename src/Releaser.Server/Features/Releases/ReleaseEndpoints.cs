@@ -21,6 +21,9 @@ internal static class ReleaseEndpoints
         group.MapPost("/manifest-preview", PreviewAsync).WithName("PreviewManifest").Validate<PreviewManifestRequest>().RequiresReleaseManager()
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPut("/{releaseId:guid}", UpdateAsync).WithName("UpdateRelease").Validate<UpdateReleaseRequest>().RequiresReleaseManager();
+        group.MapPost("/{releaseId:guid}/manifests", AddManifestAsync).WithName("AddReleaseManifest").Validate<ManifestReference>().RequiresReleaseManager()
+            .WithSummary("Add a platform's manifest to an existing release (e.g. ship macOS after Windows)")
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPut("/{releaseId:guid}/channels", AssignChannelsAsync).WithName("AssignReleaseChannels").Validate<AssignChannelsRequest>().RequiresReleaseManager();
         group.MapPost("/{releaseId:guid}/deprecate", (Guid appId, Guid releaseId, ReleaserDbContext db, IAuditLog audit, CancellationToken ct) =>
             TransitionAsync(appId, releaseId, db, audit, r => r.Deprecate(), "release.deprecated", ct)).WithName("DeprecateRelease").RequiresReleaseManager();
@@ -83,6 +86,37 @@ internal static class ReleaseEndpoints
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(await ToResponseAsync(release, db, cancellationToken));
     }
+
+    private static async Task<Results<Ok<ReleaseResponse>, NotFound>> AddManifestAsync(
+        Guid appId, Guid releaseId, ManifestReference request, ReleaserDbContext db, ReleaseRegistration registration, IAuditLog audit, CancellationToken cancellationToken)
+    {
+        var detached = await db.Releases.AsNoTracking().SingleOrDefaultAsync(r => r.AppId == new AppId(appId) && r.Id == new ReleaseId(releaseId), cancellationToken);
+        if (detached is null)
+        {
+            return TypedResults.NotFound();
+        }
+        // Fetch first (up to the manifest timeout), then append in a short optimistic transaction. Concurrent adds of
+        // different platforms only conflict on the release row version, so retry on fresh state (issue #8 review).
+        var prepared = await registration.PrepareAdditionAsync(detached, request, cancellationToken);
+        for (var attempt = 1; ; attempt++)
+        {
+            var release = (await FindAsync(appId, releaseId, db, cancellationToken))!;
+            var manifest = registration.Attach(release, prepared);
+            audit.Record(new AuditRecord("release.manifest_added", "release", release.Id.ToString(), appId,
+                $"version={release.Version}; platform={manifest.Platform}; source={manifest.SourceUrl}"));
+            try
+            {
+                await db.SaveChangesAsync(cancellationToken);
+                return TypedResults.Ok(await ToResponseAsync(release, db, cancellationToken));
+            }
+            catch (DbUpdateConcurrencyException) when (attempt < MaxAppendAttempts)
+            {
+                db.ChangeTracker.Clear();
+            }
+        }
+    }
+
+    private const int MaxAppendAttempts = 3;
 
     private static async Task<Results<Ok<ReleaseResponse>, NotFound>> AssignChannelsAsync(
         Guid appId, Guid releaseId, AssignChannelsRequest request, ReleaserDbContext db, IAuditLog audit, CancellationToken cancellationToken)

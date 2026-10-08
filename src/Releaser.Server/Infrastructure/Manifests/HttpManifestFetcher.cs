@@ -21,16 +21,24 @@ internal sealed class HttpManifestFetcher(HttpClient http, IOptions<ManifestOpti
             using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                throw new ManifestFetchException($"Fetching {url} returned HTTP {(int)response.StatusCode}; redirects are not followed.");
+                throw new ManifestFetchException($"Fetching {url} returned HTTP {(int)response.StatusCode}{Hint(response.StatusCode)}", response.StatusCode);
             }
             var bytes = await ReadCappedAsync(response.Content, timeout.Token);
             return new FetchedManifest(url, Encoding.UTF8.GetString(bytes), Convert.ToHexStringLower(SHA256.HashData(bytes)));
         }
         catch (Exception exception) when (exception is HttpRequestException or OperationCanceledException && !cancellationToken.IsCancellationRequested)
         {
-            throw new ManifestFetchException($"Could not fetch {url}: {exception.Message}", exception);
+            throw new ManifestFetchException($"Could not fetch {url}: {exception.Message}", inner: exception);
         }
     }
+
+    private static string Hint(HttpStatusCode status) => status switch
+    {
+        HttpStatusCode.Forbidden or HttpStatusCode.NotFound =>
+            ". The file may not exist: object stores such as S3 answer 403 instead of 404 for missing files.",
+        >= HttpStatusCode.MultipleChoices and < HttpStatusCode.BadRequest => "; redirects are not followed, so use the final URL.",
+        _ => ".",
+    };
 
     private void EnsureAllowedScheme(Uri url)
     {

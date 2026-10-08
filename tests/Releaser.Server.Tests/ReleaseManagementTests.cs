@@ -97,6 +97,8 @@ public sealed class ReleaseManagementTests(PostgresContainer postgres) : Platfor
         var release = await admin.RegisterReleaseAsync(app.Id, "1.1.0", AllPlatforms(Manifests, "1.1.0"), "beta");
         var promoted = await admin.SendAsync<ReleaseResponse>(HttpMethod.Put, $"/api/admin/v1/applications/{app.Id}/releases/{release.Id}/channels", new AssignChannelsRequest(["beta", "stable"]));
         promoted.Channels.ShouldBe(["beta", "stable"], ignoreOrder: true);
+        var reloaded = await admin.SendAsync<ReleaseResponse>(HttpMethod.Get, $"/api/admin/v1/applications/{app.Id}/releases/{release.Id}", null);
+        reloaded.Channels.ShouldBe(["beta", "stable"], ignoreOrder: true);
         promoted.Manifests.Select(m => m.SourceSha256).ShouldBe(release.Manifests.Select(m => m.SourceSha256));
     }
 

@@ -46,11 +46,16 @@ internal sealed class RegisterReleaseValidator : AbstractValidator<RegisterRelea
         RuleForEach(r => r.Channels).MustBeChannelKey();
         RuleFor(r => r.Manifests).NotEmpty().Must(m => m.Count <= Enum.GetValues<PlatformTarget>().Length)
             .Must(m => m.Select(x => x.Platform).Distinct().Count() == m.Count).WithMessage("Register at most one manifest per platform.");
-        RuleForEach(r => r.Manifests).ChildRules(manifest =>
-        {
-            manifest.RuleFor(m => m.Platform).IsInEnum();
-            manifest.RuleFor(m => m.Url).MustBeAbsoluteHttpUrl();
-        });
+        RuleForEach(r => r.Manifests).SetValidator(new ManifestReferenceValidator());
+    }
+}
+
+internal sealed class ManifestReferenceValidator : AbstractValidator<ManifestReference>
+{
+    public ManifestReferenceValidator()
+    {
+        RuleFor(m => m.Platform).IsInEnum();
+        RuleFor(m => m.Url).MustBeAbsoluteHttpUrl();
     }
 }
 

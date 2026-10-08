@@ -2,10 +2,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Wand2 } from "lucide-react";
 import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
-import { api, errorMessage, unwrap, type Schemas } from "@/api/client";
+import { api, errorMessage, unwrap } from "@/api/client";
 import { applicationScope, queries } from "@/api/queries";
 import { TextField } from "@/components/form-fields";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -17,44 +17,55 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { semverSchema } from "@/features/shared/schemas";
 import { platformLabels } from "@/lib/format";
-
-const platforms = ["Windows", "MacOS", "LinuxX64", "LinuxArm64", "LinuxArmv7l"] as const satisfies readonly Schemas["PlatformTarget"][];
-const feedFiles: Record<Schemas["PlatformTarget"], string> = {
-  Windows: "latest.yml",
-  MacOS: "latest-mac.yml",
-  LinuxX64: "latest-linux.yml",
-  LinuxArm64: "latest-linux-arm64.yml",
-  LinuxArmv7l: "latest-linux-armv7l.yml",
-};
-
-const optionalUrl = z.union([z.literal(""), z.url({ protocol: /^https?$/, error: "Use an absolute http(s) URL." })]);
+import { allPlatforms, feedFiles, manifestUrlIn, manifestUrlSchema, shippedPlatforms, type Platform } from "./platforms";
 
 const schema = z
   .object({
     version: semverSchema,
     title: z.string().max(200).optional(),
     channels: z.array(z.string()),
-    manifests: z.object(Object.fromEntries(platforms.map((p) => [p, optionalUrl])) as Record<Schemas["PlatformTarget"], typeof optionalUrl>),
+    included: z.array(z.enum(allPlatforms)),
+    manifests: z.record(z.enum(allPlatforms), z.string()),
   })
-  .refine((values) => Object.values(values.manifests).some(Boolean), { path: ["manifests"], message: "Reference at least one platform manifest." });
+  .superRefine((values, ctx) => {
+    if (values.included.length === 0) {
+      ctx.addIssue({ code: "custom", path: ["included"], message: "Include at least one platform. The others can be added later." });
+    }
+    for (const platform of values.included) {
+      const result = manifestUrlSchema.safeParse(values.manifests[platform]);
+      if (!result.success) {
+        ctx.addIssue({ code: "custom", path: ["manifests", platform], message: result.error.issues[0]?.message ?? "Invalid URL." });
+      }
+    }
+  });
 
 type Values = z.infer<typeof schema>;
 
+const emptyManifests = Object.fromEntries(allPlatforms.map((p) => [p, ""])) as Record<Platform, string>;
+
 export function RegisterReleaseDialog({ appId }: { appId: string }) {
   const [open, setOpen] = useState(false);
-  const [baseUrl, setBaseUrl] = useState("");
+  const [folderUrl, setFolderUrl] = useState("");
   const queryClient = useQueryClient();
   const channels = useQuery(queries.channels(appId));
   const app = useQuery(queries.application(appId));
+  const releases = useQuery(queries.releases(appId));
+  // Start from every platform the app ships (non-withdrawn releases), so a Windows-only app is not asked for macOS/Linux
+  // manifests and a one-off single-platform hotfix does not narrow the next release. New apps start with Windows.
+  const shipped = shippedPlatforms(releases.data ?? []);
+  const defaultPlatforms: Platform[] = shipped.length > 0 ? shipped : ["Windows"];
   const form = useForm<Values>({
     resolver: zodResolver(schema),
-    defaultValues: {
+    values: {
       version: "",
       title: "",
       channels: app.data ? [app.data.defaultChannel] : [],
-      manifests: Object.fromEntries(platforms.map((p) => [p, ""])) as Values["manifests"],
+      included: defaultPlatforms,
+      manifests: emptyManifests,
     },
+    resetOptions: { keepDirtyValues: true },
   });
+  const included = useWatch({ control: form.control, name: "included" });
   const register = useMutation({
     mutationFn: (values: Values) =>
       unwrap(
@@ -64,22 +75,22 @@ export function RegisterReleaseDialog({ appId }: { appId: string }) {
             version: values.version,
             title: values.title || null,
             channels: values.channels,
-            manifests: platforms.filter((p) => values.manifests[p]).map((platform) => ({ platform, url: values.manifests[platform] })),
+            manifests: allPlatforms.filter((p) => values.included.includes(p)).map((platform) => ({ platform, url: values.manifests[platform] ?? "" })),
           },
         }),
       ),
     onSuccess: async (release) => {
       await queryClient.invalidateQueries({ queryKey: applicationScope(appId) });
-      toast.success(`Registered ${release.version}`, { description: "Nothing is offered until you deploy it." });
+      toast.success(`Registered ${release.version}`, { description: "Nothing is offered until you deploy it. Missing platforms can be added from the release page." });
       setOpen(false);
       form.reset();
+      setFolderUrl("");
     },
   });
 
-  const fillFromBase = () => {
-    const base = baseUrl.replace(/\/+$/, "");
-    for (const platform of platforms.slice(0, 4)) {
-      form.setValue(`manifests.${platform}`, `${base}/${feedFiles[platform]}`, { shouldValidate: true });
+  const fillFromFolder = () => {
+    for (const platform of included) {
+      form.setValue(`manifests.${platform}`, manifestUrlIn(folderUrl, platform), { shouldValidate: true, shouldDirty: true });
     }
   };
 
@@ -136,35 +147,65 @@ export function RegisterReleaseDialog({ appId }: { appId: string }) {
                 </FieldSet>
               )}
             />
-            <FieldSet>
-              <FieldLegend variant="label">Update manifests</FieldLegend>
-              <FieldDescription>Absolute URLs of each platform's latest*.yml. Relative file paths inside them are resolved against these URLs.</FieldDescription>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  aria-label="Release folder URL"
-                  placeholder="https://cdn.example.com/acme/1.2.0"
-                  value={baseUrl}
-                  onChange={(event) => setBaseUrl(event.target.value)}
-                />
-                <Button type="button" variant="outline" onClick={fillFromBase} disabled={!baseUrl}>
-                  <Wand2 />
-                  Fill standard file names
-                </Button>
-              </div>
-              {platforms.map((platform) => (
-                <TextField
-                  key={platform}
-                  control={form.control}
-                  name={`manifests.${platform}`}
-                  label={`${platformLabels[platform]} — ${feedFiles[platform]}`}
-                  inputProps={{ placeholder: "https://…", inputMode: "url" }}
-                />
-              ))}
-              {form.formState.errors.manifests?.root?.message && (
-                <p className="text-sm text-destructive">{form.formState.errors.manifests.root.message}</p>
+            <Controller
+              name="included"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <FieldSet>
+                  <FieldLegend variant="label">Platforms to register now</FieldLegend>
+                  <FieldDescription>
+                    Only these manifests are fetched now. Skip platforms you don't ship yet — add them to this release later from its page.
+                  </FieldDescription>
+                  <div className="flex flex-wrap gap-4">
+                    {allPlatforms.map((platform) => (
+                      <Field key={platform} orientation="horizontal" className="w-auto">
+                        <Checkbox
+                          id={`include-${platform}`}
+                          checked={field.value.includes(platform)}
+                          onCheckedChange={(checked) => field.onChange(checked ? [...field.value, platform] : field.value.filter((p) => p !== platform))}
+                        />
+                        <FieldLabel htmlFor={`include-${platform}`} className="font-normal">
+                          {platformLabels[platform]}
+                        </FieldLabel>
+                      </Field>
+                    ))}
+                  </div>
+                  {fieldState.error && <p className="text-sm text-destructive">{fieldState.error.message}</p>}
+                </FieldSet>
               )}
-              {form.formState.errors.manifests?.message && <p className="text-sm text-destructive">{form.formState.errors.manifests.message}</p>}
-            </FieldSet>
+            />
+            {included.length > 0 && (
+              <FieldSet>
+                <FieldLegend variant="label">Update manifests</FieldLegend>
+                <FieldDescription>
+                  Absolute URLs of each selected platform's latest*.yml. Relative file paths inside them are resolved against these URLs, so
+                  downloads keep coming from your host.
+                </FieldDescription>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    aria-label="Release folder URL"
+                    placeholder="https://cdn.example.com/acme/1.2.0"
+                    value={folderUrl}
+                    onChange={(event) => setFolderUrl(event.target.value)}
+                  />
+                  <Button type="button" variant="outline" onClick={fillFromFolder} disabled={!folderUrl}>
+                    <Wand2 />
+                    Fill selected platforms
+                  </Button>
+                </div>
+                {allPlatforms
+                  .filter((platform) => included.includes(platform))
+                  .map((platform) => (
+                    <TextField
+                      key={platform}
+                      control={form.control}
+                      name={`manifests.${platform}`}
+                      label={`${platformLabels[platform]} — ${feedFiles[platform]}`}
+                      inputProps={{ placeholder: "https://…", inputMode: "url" }}
+                    />
+                  ))}
+              </FieldSet>
+            )}
           </FieldGroup>
           <DialogFooter>
             <Button type="submit" disabled={register.isPending}>

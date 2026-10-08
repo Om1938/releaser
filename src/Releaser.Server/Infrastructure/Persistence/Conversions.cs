@@ -22,7 +22,11 @@ internal static class Conversions
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Stores an immutable value as jsonb; values are replaced, never mutated, so comparison by serialized form is exact.</summary>
+    /// <summary>
+    /// Stores an immutable value as jsonb. Entities must <b>replace</b> such values, never mutate them: the snapshot is the
+    /// same instance, so in-place changes would go unnoticed. Use <see cref="HasJsonListConversion{TElement}"/> for lists
+    /// that entities change in place.
+    /// </summary>
     public static void HasJsonConversion<T>(this Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<T> property)
     {
         property
@@ -33,6 +37,23 @@ internal static class Conversions
                     (left, right) => JsonSerializer.Serialize(left, JsonOptions) == JsonSerializer.Serialize(right, JsonOptions),
                     value => JsonSerializer.Serialize(value, JsonOptions).GetHashCode(StringComparison.Ordinal),
                     value => value))
+            .HasColumnType("jsonb");
+    }
+
+    /// <summary>
+    /// Stores a list that the entity changes in place (e.g. <c>Release.Channels</c>) as jsonb. Change detection is
+    /// element-wise against a copied snapshot, so additions and removals are saved without JSON round-trips.
+    /// </summary>
+    public static void HasJsonListConversion<TElement>(this Microsoft.EntityFrameworkCore.Metadata.Builders.PropertyBuilder<IReadOnlyList<TElement>> property)
+    {
+        property
+            .HasConversion(
+                value => JsonSerializer.Serialize(value, JsonOptions),
+                json => JsonSerializer.Deserialize<List<TElement>>(json, JsonOptions)!,
+                new ValueComparer<IReadOnlyList<TElement>>(
+                    (left, right) => left == null ? right == null : right != null && left.SequenceEqual(right),
+                    value => value.Aggregate(0, (hash, element) => HashCode.Combine(hash, element)),
+                    value => value.ToList()))
             .HasColumnType("jsonb");
     }
 }

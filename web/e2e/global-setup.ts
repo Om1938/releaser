@@ -28,7 +28,7 @@ export default async function globalSetup() {
   await admin.login(process.env.RELEASER_ADMIN_EMAIL ?? "admin@example.com", process.env.RELEASER_ADMIN_PASSWORD ?? "ChangeMe-Dev-Only-1");
   const appKey = `e2e-${Date.now().toString(36)}`;
   const { app } = await seedPrdScenario(admin, { appKey, artifactBaseUrl });
-  await writeFile(statePath, JSON.stringify({ appId: app.id, appKey }));
+  await writeFile(statePath, JSON.stringify({ appId: app.id, appKey, artifactBaseUrl }));
   return async () => {
     server.close();
   };
