@@ -21,6 +21,9 @@ internal static class ReleaseEndpoints
         group.MapPost("/manifest-preview", PreviewAsync).WithName("PreviewManifest").Validate<PreviewManifestRequest>().RequiresReleaseManager()
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPut("/{releaseId:guid}", UpdateAsync).WithName("UpdateRelease").Validate<UpdateReleaseRequest>().RequiresReleaseManager();
+        group.MapPost("/{releaseId:guid}/manifests", AddManifestAsync).WithName("AddReleaseManifest").Validate<ManifestReference>().RequiresReleaseManager()
+            .WithSummary("Add a platform's manifest to an existing release (e.g. ship macOS after Windows)")
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity);
         group.MapPut("/{releaseId:guid}/channels", AssignChannelsAsync).WithName("AssignReleaseChannels").Validate<AssignChannelsRequest>().RequiresReleaseManager();
         group.MapPost("/{releaseId:guid}/deprecate", (Guid appId, Guid releaseId, ReleaserDbContext db, IAuditLog audit, CancellationToken ct) =>
             TransitionAsync(appId, releaseId, db, audit, r => r.Deprecate(), "release.deprecated", ct)).WithName("DeprecateRelease").RequiresReleaseManager();
@@ -80,6 +83,21 @@ internal static class ReleaseEndpoints
         }
         release.Rename(request.Title);
         audit.Record(new AuditRecord("release.updated", "release", release.Id.ToString(), appId, $"title={request.Title}"));
+        await db.SaveChangesAsync(cancellationToken);
+        return TypedResults.Ok(await ToResponseAsync(release, db, cancellationToken));
+    }
+
+    private static async Task<Results<Ok<ReleaseResponse>, NotFound>> AddManifestAsync(
+        Guid appId, Guid releaseId, ManifestReference request, ReleaserDbContext db, ReleaseRegistration registration, IAuditLog audit, CancellationToken cancellationToken)
+    {
+        var release = await FindAsync(appId, releaseId, db, cancellationToken);
+        if (release is null)
+        {
+            return TypedResults.NotFound();
+        }
+        var manifest = await registration.AddManifestAsync(release, request, cancellationToken);
+        audit.Record(new AuditRecord("release.manifest_added", "release", release.Id.ToString(), appId,
+            $"version={release.Version}; platform={manifest.Platform}; source={manifest.SourceUrl}"));
         await db.SaveChangesAsync(cancellationToken);
         return TypedResults.Ok(await ToResponseAsync(release, db, cancellationToken));
     }

@@ -35,10 +35,29 @@ internal sealed class ReleaseRegistration(ReleaserDbContext db, IManifestFetcher
         return (ElectronManifest.Parse(source.Content).WithAbsoluteUrls(source.Url), source);
     }
 
+    /// <summary>Adds one more platform's manifest to an existing release (append-only; ADR 0005).</summary>
+    public async Task<ReleaseManifest> AddManifestAsync(Release release, ManifestReference reference, CancellationToken cancellationToken)
+    {
+        release.AddPlatform(reference.Platform);
+        var (_, source, manifest) = await SnapshotAsync(reference, release.Version, cancellationToken);
+        var snapshot = ReleaseManifest.Snapshot(release.AppId, release.Id, reference.Platform, source.Url, source.Sha256, manifest.ToYaml(), clock.GetUtcNow());
+        db.ReleaseManifests.Add(snapshot);
+        return snapshot;
+    }
+
     private async Task<(ManifestReference Reference, FetchedManifest Source, ElectronManifest Manifest)> SnapshotAsync(
         ManifestReference reference, SemanticVersion version, CancellationToken cancellationToken)
     {
-        var (manifest, source) = await PreviewAsync(new Uri(reference.Url), cancellationToken);
+        ElectronManifest manifest;
+        FetchedManifest source;
+        try
+        {
+            (manifest, source) = await PreviewAsync(new Uri(reference.Url), cancellationToken);
+        }
+        catch (ManifestFetchException exception)
+        {
+            throw new ManifestFetchException($"{reference.Platform} manifest: {exception.Message}", exception);
+        }
         if (manifest.Version != version)
         {
             throw new DomainRuleException("manifest.version_mismatch",

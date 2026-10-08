@@ -21,7 +21,7 @@ internal sealed class HttpManifestFetcher(HttpClient http, IOptions<ManifestOpti
             using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                throw new ManifestFetchException($"Fetching {url} returned HTTP {(int)response.StatusCode}; redirects are not followed.");
+                throw new ManifestFetchException($"Fetching {url} returned HTTP {(int)response.StatusCode}{Hint(response.StatusCode)}");
             }
             var bytes = await ReadCappedAsync(response.Content, timeout.Token);
             return new FetchedManifest(url, Encoding.UTF8.GetString(bytes), Convert.ToHexStringLower(SHA256.HashData(bytes)));
@@ -31,6 +31,14 @@ internal sealed class HttpManifestFetcher(HttpClient http, IOptions<ManifestOpti
             throw new ManifestFetchException($"Could not fetch {url}: {exception.Message}", exception);
         }
     }
+
+    private static string Hint(HttpStatusCode status) => status switch
+    {
+        HttpStatusCode.Forbidden or HttpStatusCode.NotFound =>
+            ". The file may not exist yet: object stores such as S3 answer 403 instead of 404 for missing files. Skip this platform and add it later.",
+        >= HttpStatusCode.MultipleChoices and < HttpStatusCode.BadRequest => "; redirects are not followed, so use the final URL.",
+        _ => ".",
+    };
 
     private void EnsureAllowedScheme(Uri url)
     {

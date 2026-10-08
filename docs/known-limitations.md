@@ -7,6 +7,6 @@
 - **Machine-wide installs.** A user- or customer-targeted decision applies to the installation that asked. Per-machine installs shared by several users get whichever user's token they send.
 - **No downgrades or recalls.** Withdrawal stops *new* offers. It can't remove installed versions. Ship a forward fix.
 - **Eligibility only.** Rollout percentages describe who is offered an update. There is no adoption or crash telemetry, and no automatic promotion or pause.
-- **Manifests are snapshots.** If you overwrite a published `latest*.yml` on your CDN, Releaser keeps serving the registered snapshot. Register a new version instead.
+- **Manifests are snapshots.** If you overwrite a published `latest*.yml` on your CDN, Releaser keeps serving the registered snapshot. Register a new version instead. Platforms missing from a release can be added later, but a registered platform's manifest can't be replaced.
 - **Local accounts only.** No SSO or approval workflows yet.
 - **Not install-verified.** See [supported-matrix](supported-matrix.md).

@@ -51,4 +51,36 @@ public sealed class ReleaseLifecycleTests
         Should.Throw<DomainRuleException>(() =>
             Release.Register(AppId.New(), SemanticVersion.Parse("1.0.0"), null, [], DateTimeOffset.UnixEpoch));
     }
+
+    [Fact]
+    public void a_platform_can_be_added_later_and_platforms_stay_sorted()
+    {
+        var release = NewRelease();
+        release.AddPlatform(PlatformTarget.MacOS);
+        release.Platforms.ShouldBe([PlatformTarget.Windows, PlatformTarget.MacOS]);
+    }
+
+    [Fact]
+    public void adding_a_platform_the_release_already_has_is_rejected()
+    {
+        var release = NewRelease();
+        Should.Throw<DomainRuleException>(() => release.AddPlatform(PlatformTarget.Windows)).Code.ShouldBe("release.platform_exists");
+    }
+
+    [Fact]
+    public void a_withdrawn_release_cannot_gain_platforms()
+    {
+        var release = NewRelease();
+        release.Withdraw();
+        Should.Throw<DomainRuleException>(() => release.AddPlatform(PlatformTarget.MacOS)).Code.ShouldBe("release.withdrawn");
+    }
+
+    [Fact]
+    public void a_deprecated_release_can_still_gain_platforms()
+    {
+        var release = NewRelease();
+        release.Deprecate();
+        release.AddPlatform(PlatformTarget.LinuxX64);
+        release.Platforms.ShouldContain(PlatformTarget.LinuxX64);
+    }
 }
