@@ -115,7 +115,8 @@ internal sealed class ReleaseRegistration(ReleaserDbContext db, IManifestFetcher
     {
         if (await db.Releases.AnyAsync(r => r.AppId == appId && r.Version == version, cancellationToken))
         {
-            throw new DomainRuleException("release.duplicate_version", $"Version {version} is already registered; release identities are immutable.");
+            throw new DomainRuleException("release.duplicate_version",
+                $"Version {version} is already registered. To register it again, an admin can obliterate the existing release from its page (this cannot be undone).");
         }
     }
 }

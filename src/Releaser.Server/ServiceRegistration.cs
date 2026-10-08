@@ -49,6 +49,7 @@ internal static class ServiceRegistration
         builder.Services.AddReleaserRateLimiting(builder.Configuration.GetSection(RateLimitOptions.Section).Get<RateLimitOptions>() ?? new RateLimitOptions());
         builder.Services.AddScoped<IAuditLog, AuditLog>();
         builder.Services.AddScoped<ReleaseRegistration>();
+        builder.Services.AddScoped<ReleaseObliteration>();
         builder.Services.AddSingleton<ContextTokenValidator>();
         builder.Services.AddSingleton<FeedManifestRenderer>();
         builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -142,7 +143,8 @@ internal static class ServiceRegistration
         builder.Services.AddAuthorizationBuilder()
             .AddPolicy(AdminRoles.CanView, policy => policy.RequireRole(AdminRoles.All))
             .AddPolicy(AdminRoles.CanManageReleases, policy => policy.RequireRole(AdminRoles.Admin, AdminRoles.ReleaseManager))
-            .AddPolicy(AdminRoles.CanManageUsers, policy => policy.RequireRole(AdminRoles.Admin));
+            .AddPolicy(AdminRoles.CanManageUsers, policy => policy.RequireRole(AdminRoles.Admin))
+            .AddPolicy(AdminRoles.CanObliterateReleases, policy => policy.RequireRole(AdminRoles.Admin));
     }
 
     private static Task Reject(HttpResponse response, int statusCode)

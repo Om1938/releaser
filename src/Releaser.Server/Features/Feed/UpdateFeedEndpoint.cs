@@ -65,9 +65,10 @@ internal static class UpdateFeedEndpoint
         var decision = UpdateResolver.Resolve(snapshot.Resolution, context);
         logger.FeedDecision(decision.Reason, appKey, request.File.Platform, currentVersion);
 
-        var body = decision.IsUpdateOffered
+        var offered = decision.IsUpdateOffered
             ? await renderer.RenderAsync(snapshot, decision.Release!.Id, request.File.Platform, cancellationToken)
-            : ElectronManifest.NoUpdate(request.CurrentVersion);
+            : null;
+        var body = offered ?? ElectronManifest.NoUpdate(request.CurrentVersion);
         return TypedResults.Text(body, ContentType);
     }
 

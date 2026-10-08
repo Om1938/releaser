@@ -12,7 +12,7 @@
 | `/api/client/v1/apps/{appKey}/notes` | published release notes | none |
 | `/api/admin/v1/auth/*` | login, logout, current user, password | cookie |
 | `/api/admin/v1/applications` | create (requires `supportedPlatforms`) and update applications; `PUT …/{appId}/supported-platforms` changes the platform set | cookie + role |
-| `/api/admin/v1/applications/{appId}/…` | channels, releases (+ notes, `POST …/releases/{id}/manifests` to add a platform later), audiences, deployments, policies, context keys, decision explainer | cookie + role |
+| `/api/admin/v1/applications/{appId}/…` | channels, releases (+ notes, `POST …/releases/{id}/manifests` to add a platform later, `DELETE …/releases/{id}?confirmVersion=` to obliterate — admins only), audiences, deployments, policies, context keys, decision explainer | cookie + role |
 | `/api/admin/v1/audit`, `/users`, `/system` | audit log, administrators, instance facts | cookie + role |
 | `/health/live`, `/health/ready` | probes | none |
 

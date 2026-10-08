@@ -10,5 +10,5 @@
   - Only absolute http(s) URLs are accepted.
   - The target host must not resolve to a loopback, link-local, private or unspecified address unless `Manifests:AllowPrivateNetworks=true`.
   - Responses are capped at 1 MiB with a 10 s timeout, and redirects aren't followed.
-- A registered release's manifests are immutable. Missing platforms can be added later (ADR 0005), but correcting a bad manifest means withdrawing the release and registering a new version.
+- A registered release's manifests are immutable. Missing platforms can be added later (ADR 0005), but correcting a bad manifest means withdrawing the release (or, for registration mistakes, obliterating it — ADR 0014) and registering a new version.
 - The platform serves the feed over the operator's HTTPS. Deployment docs require TLS termination in front of it.

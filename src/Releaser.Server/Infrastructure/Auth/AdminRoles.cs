@@ -15,6 +15,9 @@ public static class AdminRoles
     /// <summary>Manage applications, releases, audiences, deployments, policies, notes and keys.</summary>
     public const string CanManageReleases = "CanManageReleases";
 
+    /// <summary>Permanently delete releases (issue #12). Admins only: it cannot be undone.</summary>
+    public const string CanObliterateReleases = "CanObliterateReleases";
+
     /// <summary>Manage administrator accounts.</summary>
     public const string CanManageUsers = "CanManageUsers";
 }

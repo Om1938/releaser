@@ -7,7 +7,7 @@
 - Only `Available` releases are offered as update targets.
 - `Deprecated` means superseded. It is informational, the release is no longer offered, and its notes stay readable.
 - `Withdrawn` means problematic and blocked everywhere, including active deployments.
-- Release identity (application, version) and registered manifests are immutable. Title, channel assignment and notes can change.
+- Release identity (application, version) and registered manifests are immutable. Title, channel assignment and notes can change. The only way to reuse a version is an admin **obliteration** (ADR 0014), which deletes the release completely.
 - **Platforms are append-only** (issue #8). A release can be registered for some platforms and gain others later, e.g. macOS after Windows, through `POST …/releases/{id}/manifests`. Rules:
   - The added manifest must declare the release's version.
   - A platform the release already has can't be replaced, and nothing can be removed.

@@ -297,7 +297,8 @@ export interface paths {
         get: operations["GetRelease"];
         put: operations["UpdateRelease"];
         post?: never;
-        delete?: never;
+        /** Permanently delete a release and everything attached to it so its version can be registered again (admins; confirmVersion must equal the version) */
+        delete: operations["ObliterateRelease"];
         options?: never;
         head?: never;
         patch?: never;
@@ -330,6 +331,23 @@ export interface paths {
         put?: never;
         /** Add a platform's manifest to an existing release (e.g. ship macOS after Windows) */
         post: operations["AddReleaseManifest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/v1/applications/{appId}/releases/{releaseId}/obliteration-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Preview everything that obliterating the release would permanently delete */
+        get: operations["GetReleaseObliterationImpact"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -913,6 +931,31 @@ export interface components {
         ManifestReference: {
             platform: components["schemas"]["PlatformTarget"];
             url: string;
+        };
+        ObliterationDeployment: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            state: components["schemas"]["DeploymentState"];
+            channel: string;
+            audienceName: string;
+            isLive: boolean;
+        };
+        /** @description Everything that would be permanently deleted with a release (issue #12). */
+        ObliterationImpact: {
+            /** Format: uuid */
+            releaseId: string;
+            version: string;
+            state: components["schemas"]["ReleaseState"];
+            platforms: components["schemas"]["PlatformTarget"][];
+            deployments: components["schemas"]["ObliterationDeployment"][];
+            /** Format: int32 */
+            pins: number;
+            /** Format: int32 */
+            exclusions: number;
+            hasReleaseNote: boolean;
+            /** Format: int32 */
+            releaseNoteRevisions: number;
         };
         /**
          * @description Platform/architecture combination an updater asks for. Windows and macOS metadata cover all architectures in one file.
@@ -2505,6 +2548,63 @@ export interface operations {
             };
         };
     };
+    ObliterateRelease: {
+        parameters: {
+            query?: {
+                confirmVersion?: string;
+            };
+            header?: never;
+            path: {
+                appId: string;
+                releaseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     PreviewManifest: {
         parameters: {
             query?: never;
@@ -2644,6 +2744,63 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetReleaseObliterationImpact: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                appId: string;
+                releaseId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ObliterationImpact"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

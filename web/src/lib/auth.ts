@@ -8,3 +8,4 @@ function hasRole(user: Schemas["CurrentUserResponse"] | undefined, ...roles: Rol
 
 export const canManageReleases = (user: Schemas["CurrentUserResponse"] | undefined) => hasRole(user, "Admin", "ReleaseManager");
 export const canManageUsers = (user: Schemas["CurrentUserResponse"] | undefined) => hasRole(user, "Admin");
+export const canObliterateReleases = (user: Schemas["CurrentUserResponse"] | undefined) => hasRole(user, "Admin");
